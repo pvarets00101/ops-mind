@@ -140,6 +140,7 @@ public sealed class ClaudeCliChatClient : IChatClient {
                 Contents = [
                     new UsageContent(new UsageDetails {
                         InputTokenCount = result.InputTokens,
+                        CachedInputTokenCount = result.CacheReadTokens,
                         OutputTokenCount = result.OutputTokens,
                         TotalTokenCount = result.InputTokens + result.OutputTokens,
                     }),

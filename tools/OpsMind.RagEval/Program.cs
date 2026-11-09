@@ -4,7 +4,9 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OpsMind.Core.Evaluation;
 using OpsMind.Core.Llm;
+using OpsMind.Core.Llm.ClaudeCli;
 using OpsMind.Core.Rag;
 
 // Оценка поиска (retrieval):
@@ -12,6 +14,8 @@ using OpsMind.Core.Rag;
 //  2. data/eval/rag-offtopic.jsonl — калибровка порога отказа: вопросы вне базы против вопросов из базы.
 // Запуск из корня репозитория:
 //   dotnet run --project tools/OpsMind.RagEval [-- --label "описание" --sparse-weight 0.5 --no-rerank]
+// Режим --answers — оценка ответов (AnswerEval.cs), история — docs/rag-answer-eval.md:
+//   dotnet run --project tools/OpsMind.RagEval -- --answers [--provider claude-cli --model haiku] [--judge sonnet|haiku|off] [--only Q001,N001] [--limit 10]
 // Перед запуском документы должны быть проиндексированы (src/OpsMind.Ingestion), reranker — запущен (deploy/docker-compose.yml).
 
 var label = Arg("--label") ?? "без описания";
@@ -21,10 +25,16 @@ const int depth = 10;
 var inv = CultureInfo.InvariantCulture;
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
+var llmOptions = new LlmOptions();
+if (Arg("--provider") == "claude-cli") {
+    llmOptions.Provider = LlmProvider.ClaudeCli;
+    llmOptions.ClaudeCli.Model = Arg("--model") ?? "haiku";
+}
+
 var options = new RagOptions { SparseWeight = sparseWeight, RerankerUrl = "http://localhost:8081/" };
 var services = new ServiceCollection()
     .AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
-    .AddOpsMindLlm(new LlmOptions())
+    .AddOpsMindLlm(llmOptions)
     .AddOpsMindRag(options)
     .BuildServiceProvider();
 var kb = services.GetRequiredService<KnowledgeBase>();
@@ -32,6 +42,25 @@ var kb = services.GetRequiredService<KnowledgeBase>();
 var root = FindRepoRoot();
 var questions = ReadJsonl<EvalQuestion>(Path.Combine(root, "data", "eval", "rag-questions.jsonl"));
 var offTopic = ReadJsonl<OffTopicQuestion>(Path.Combine(root, "data", "eval", "rag-offtopic.jsonl"));
+
+if (args.Contains("--answers")) {
+    var only = Arg("--only")?.Split(',').ToHashSet();
+    var limit = int.TryParse(Arg("--limit"), out var n) ? n : int.MaxValue;
+    var judgeModel = Arg("--judge") ?? "sonnet";
+    // Судья — всегда Claude через подписку, независимо от модели ответа.
+    var judge = judgeModel == "off" ? null : new AnswerJudge(new ClaudeCliChatClient(new ClaudeCliOptions { Model = judgeModel }));
+    var modelName = llmOptions.Provider == LlmProvider.ClaudeCli ? $"claude {llmOptions.ClaudeCli.Model}" : llmOptions.ChatModel;
+    var answerReport = await AnswerEval.RunAsync(
+        services.GetRequiredService<RagAnswerer>(),
+        judge,
+        questions.Where(q => only is null || only.Contains(q.Id)).Take(limit).ToList(),
+        offTopic.Where(q => only is null || only.Contains(q.Id)).Take(limit).ToList(),
+        label, modelName, judge is null ? "выключен" : $"claude {judgeModel}");
+    Console.WriteLine(answerReport);
+    AppendReport(Path.Combine(root, "docs", "rag-answer-eval.md"), answerReport,
+        "# Оценка RAG-ответов\n\nИстория запусков `tools/OpsMind.RagEval --answers`, новые сверху. Как устроено — AnswerEval.cs.\n\n");
+    return;
+}
 
 List<Config> configs =
 [
@@ -95,7 +124,8 @@ if (withRerank) {
 }
 
 Console.WriteLine(report);
-AppendReport(Path.Combine(root, "docs", "rag-eval.md"), report.ToString());
+AppendReport(Path.Combine(root, "docs", "rag-eval.md"), report.ToString(),
+    "# Оценка RAG (retrieval)\n\nИстория запусков tools/OpsMind.RagEval, новые сверху.\n\n");
 return;
 
 Result Evaluate(EvalQuestion q, IReadOnlyList<SearchHit> hits) {
@@ -144,9 +174,9 @@ List<T> ReadJsonl<T>(string path) => File.ReadLines(path)
     .Select(l => JsonSerializer.Deserialize<T>(l, json)!)
     .ToList();
 
-static void AppendReport(string path, string report) {
+static void AppendReport(string path, string report, string header) {
     if (!File.Exists(path))
-        File.WriteAllText(path, "# Оценка RAG (retrieval)\n\nИстория запусков tools/OpsMind.RagEval, новые сверху.\n\n");
+        File.WriteAllText(path, header);
     var existing = File.ReadAllText(path);
     var firstRun = existing.IndexOf("\n## ", StringComparison.Ordinal);
     File.WriteAllText(path, firstRun < 0

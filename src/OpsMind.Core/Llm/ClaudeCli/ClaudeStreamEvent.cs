@@ -20,13 +20,14 @@ public abstract record ClaudeStreamEvent {
     /// Последнее событие: итоговый текст, ошибка, токены. CostUsd — сколько стоил бы запрос по ценам API;
     /// по подписке мы не платим, но это удобная мера «тяжести» запроса.
     /// </summary>
+    /// <param name="CacheReadTokens">Сколько из InputTokens прочитано из кэша промптов.</param>
     /// <param name="StructuredOutput">
     /// JSON по схеме из --json-schema. CLI получает его вызовом служебного инструмента StructuredOutput:
     /// схема ответа становится схемой аргументов функции — так structured output устроен и в API.
     /// </param>
     public sealed record Result(
         string Text, bool IsError, string? StopReason, long InputTokens, long OutputTokens, decimal? CostUsd, int DurationMs,
-        string? StructuredOutput = null)
+        string? StructuredOutput = null, long CacheReadTokens = 0)
         : ClaudeStreamEvent;
 
     /// <summary>Разбирает одну строку вывода. null — строка не JSON или событие нам не нужно.</summary>
@@ -73,7 +74,9 @@ public abstract record ClaudeStreamEvent {
                         DurationMs: e.TryGetProperty("duration_ms", out var d) && d.TryGetInt32(out var ms) ? ms : 0,
                         StructuredOutput: e.TryGetProperty("structured_output", out var so) && so.ValueKind is JsonValueKind.Object or JsonValueKind.Array
                             ? so.GetRawText()
-                            : null);
+                            : null,
+                        // Часть InputTokens, прочитанная из кэша промптов: по цене API — десятая часть обычных.
+                        CacheReadTokens: Long(usage, "cache_read_input_tokens"));
 
                 default:
                     return null;

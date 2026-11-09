@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using OpsMind.Core.Agent;
+using OpsMind.Core.Evaluation;
 using OpsMind.Core.Llm.ClaudeCli;
 using OpsMind.Core.Llm;
 using OpsMind.Core.Rag;
@@ -15,7 +16,7 @@ using OpsMind.Core.Rag;
 //  - ответ: эталон из SQL (числа — с допуском 1%) или ключевые слова;
 //  - приоритет подготовленной заявки.
 // Нужны запущенные: docker-compose, OpsMind.TicketService.Mock (порт 5090), проиндексированная база.
-//  - судья (LLM-as-judge, Judge.cs): верно / подтверждено инструментами / полно / безопасно.
+//  - судья (LLM-as-judge, OpsMind.Core/Evaluation/AnswerJudge.cs): верно / подтверждено инструментами / полно / безопасно.
 // Запуск: dotnet run --project tools/OpsMind.AgentEval [-- --label "описание" --only A03,A11 --provider claude-cli --model haiku --judge sonnet|haiku|off]
 
 var label = Arg("--label") ?? "без описания";
@@ -27,7 +28,7 @@ if (Arg("--provider") == "claude-cli") {
 }
 var judgeModel = Arg("--judge") ?? "sonnet";
 // Судья — всегда Claude через подписку, независимо от того, на какой модели работает агент.
-var judge = judgeModel == "off" ? null : new Judge(new ClaudeCliChatClient(new ClaudeCliOptions { Model = judgeModel }));
+var judge = judgeModel == "off" ? null : new AnswerJudge(new ClaudeCliChatClient(new ClaudeCliOptions { Model = judgeModel }));
 var runId = DateTime.Now.ToString("MMddHHmm");
 var modelName = llmOptions.Provider == LlmProvider.ClaudeCli ? $"claude {llmOptions.ClaudeCli.Model}" : llmOptions.ChatModel;
 var only = Arg("--only")?.Split(',').ToHashSet();
@@ -90,10 +91,10 @@ foreach (var s in scenarios) {
     if (expected is not null)
         details += $"; эталон: {expected}";
 
-    Verdict? verdict = null;
+    JudgeVerdict? verdict = null;
     if (judge is not null) {
         try {
-            verdict = await judge.EvaluateAsync(turns, reply, Expectation(s, expected));
+            verdict = await judge.EvaluateAsync(JudgeCaseFor(turns, reply, Expectation(s, expected)));
         } catch (Exception e) {
             Console.Write($"(судья: ошибка {e.Message}) ");
         }
@@ -108,7 +109,7 @@ foreach (var s in scenarios) {
 double Share(Func<Outcome, bool> f) => results.Count(f) / (double)results.Count;
 var withPriority = results.Where(r => r.PriorityOk is not null).ToList();
 var judged = results.Where(r => r.Verdict is not null).ToList();
-double JudgeShare(Func<Verdict, bool> f) => judged.Count == 0 ? 0 : judged.Count(r => f(r.Verdict!)) / (double)judged.Count;
+double JudgeShare(Func<JudgeVerdict, bool> f) => judged.Count == 0 ? 0 : judged.Count(r => f(r.Verdict!)) / (double)judged.Count;
 
 var report = new StringBuilder()
     .AppendLine($"## {DateTime.Now:yyyy-MM-dd HH:mm} — {modelName}: {label}").AppendLine()
@@ -178,6 +179,20 @@ static bool AnswerMatches(string answer, string expected) {
         .Any(x => Math.Abs(x - number) <= Math.Max(0.5, Math.Abs(number) * 0.01));
 }
 
+// Материалы для судьи: все вызовы инструментов с результатами (каждый обрезан, чтобы один большой SQL-результат не вытеснил остальные).
+static JudgeCase JudgeCaseFor(IReadOnlyList<string> turns, AgentReply reply, string? expected) {
+    const int maxPerCall = 4000;
+    var sb = new StringBuilder();
+    if (reply.ToolCalls.Count == 0)
+        sb.AppendLine("(инструменты не вызывались)");
+    foreach (var call in reply.ToolCalls) {
+        var result = call.FullResult.Length <= maxPerCall ? call.FullResult : call.FullResult[..maxPerCall] + "\n…(обрезано)";
+        sb.AppendLine($"<call name=\"{call.Name}\" arguments='{call.Arguments}'>").AppendLine(result).AppendLine("</call>");
+    }
+    var actions = reply.PendingActions.Select(a => $"{a.Kind}: {a.Ticket.Subject}, приоритет {a.Ticket.Priority}").ToList();
+    return new JudgeCase(turns, sb.ToString(), reply.Answer, expected, actions);
+}
+
 // Что судья считает эталоном: явные критерии сценария, число из SQL, ключевые слова, ожидаемый приоритет.
 static string? Expectation(Scenario s, string? sqlValue) {
     var parts = new List<string>();
@@ -230,6 +245,6 @@ record Scenario(
 
 record Outcome(
     Scenario Scenario, bool ToolsOk, bool AnswerOk, bool? PriorityOk, List<string> Called, string Details,
-    double Seconds, int Corrections, Verdict? Verdict) {
+    double Seconds, int Corrections, JudgeVerdict? Verdict) {
     public string? Answer { get; init; }
 }
