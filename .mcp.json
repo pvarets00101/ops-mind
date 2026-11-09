@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "opsmind": {
+      "type": "http",
+      "url": "http://localhost:5100/mcp"
+    }
+  }
+}

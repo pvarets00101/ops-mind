@@ -1,0 +1,102 @@
+{"id":"Q001","question":"За какое время нужно решить критический инцидент?","expected_runbook":"RB-001","reference_answer":"P1 — реакция 15 минут, решение 4 часа."}
+{"id":"Q002","question":"Пользователь написал «СРОЧНО» в теме письма, нужно ставить P1?","expected_runbook":"RB-001","reference_answer":"Нет, слово «срочно» не влияет на приоритет — оценивается масштаб и влияние на бизнес."}
+{"id":"Q003","question":"Какой номер у дежурной смены и где писать ночью?","expected_runbook":"RB-002","reference_answer":"Доб. 4444 и канал #ops-duty."}
+{"id":"Q004","question":"В какой срок после P1 нужно написать постмортем?","expected_runbook":"RB-002","reference_answer":"В течение 5 рабочих дней после закрытия инцидента."}
+{"id":"Q005","question":"Какие требования к новому паролю в домене?","expected_runbook":"RB-010","reference_answer":"Не менее 12 символов, буквы разного регистра и цифры, нельзя повторять 10 последних паролей, срок действия 90 дней."}
+{"id":"Q006","question":"Можно ли отправить пользователю временный пароль в Telegram?","expected_runbook":"RB-010","reference_answer":"Нет, временный пароль передаётся только голосом или SMS на номер из кадровой системы; почта и мессенджеры запрещены."}
+{"id":"Q007","question":"Сколько неверных попыток ввода пароля приводит к блокировке и на сколько?","expected_runbook":"RB-011","reference_answer":"5 неверных попыток, блокировка на 30 минут."}
+{"id":"Q008","question":"Как найти компьютер, с которого постоянно блокируется учётка?","expected_runbook":"RB-011","reference_answer":"По событию 4740 в журнале Security на контроллере домена с ролью PDC (dc01.corp.local)."}
+{"id":"Q009","question":"Мне выдали права на папку, а она всё равно не открывается. Почему?","expected_runbook":"RB-012","reference_answer":"Членство в группах обновляется при входе — нужно выйти из системы и войти заново или перезагрузиться."}
+{"id":"Q010","question":"Как называются группы для доступа к файловым ресурсам на чтение и запись?","expected_runbook":"RB-012","reference_answer":"FS-<ресурс>-RW для чтения и записи и FS-<ресурс>-RO только для чтения."}
+{"id":"Q011","question":"Потерял телефон с приложением для двухфакторки, резервных кодов нет. Что делать?","expected_runbook":"RB-013","reference_answer":"Обратиться в ServiceDesk, пройти идентификацию по видеосвязи с пропуском или паспортом; выдаётся временный код на 24 часа."}
+{"id":"Q012","question":"Мне позвонили из поддержки и попросили продиктовать код из аутентификатора — это нормально?","expected_runbook":"RB-013","reference_answer":"Нет, ServiceDesk никогда не просит код MFA; это социальная инженерия, нужно сообщить в Security (доб. 5555)."}
+{"id":"Q013","question":"Outlook пишет «Отключено», а веб-почта работает — что попробовать?","expected_runbook":"RB-020","reference_answer":"Запустить outlook.exe /safe, удалить сохранённые учётные данные mail.corp.local, создать новый профиль."}
+{"id":"Q014","question":"Какой адрес автообнаружения у почты?","expected_runbook":"RB-020","reference_answer":"autodiscover.corp.local."}
+{"id":"Q015","question":"Какой размер почтового ящика у сотрудника и до скольких его можно увеличить?","expected_runbook":"RB-021","reference_answer":"Стандартно 10 ГБ, по заявке с согласованием руководителя — до 20 ГБ."}
+{"id":"Q016","question":"Можно хранить старую почту в PST-файле?","expected_runbook":"RB-021","reference_answer":"Нет, PST-файлы запрещены политикой хранения и не резервируются; использовать онлайн-архив."}
+{"id":"Q017","question":"Какой максимальный размер вложения можно отправить внешнему получателю?","expected_runbook":"RB-022","reference_answer":"25 МБ на письмо; большие файлы — через share.corp.local."}
+{"id":"Q018","question":"Пришёл NDR с кодом 5.7.1, что это значит?","expected_runbook":"RB-022","reference_answer":"Письмо отклонено политикой получателя."}
+{"id":"Q019","question":"Через сколько общий ящик появится в Outlook после выдачи прав?","expected_runbook":"RB-023","reference_answer":"В течение 60 минут за счёт автомаппинга."}
+{"id":"Q020","question":"На какой срок дают доступ к почте уволенного сотрудника?","expected_runbook":"RB-023","reference_answer":"Не более 30 дней, по согласованию руководителя и Security."}
+{"id":"Q021","question":"FortiClient выдаёт ошибку -12, что проверить?","expected_runbook":"RB-030","reference_answer":"Неверный пароль или блокировка учётной записи — проверить по RB-010 и RB-011."}
+{"id":"Q022","question":"В какой группе AD нужно состоять, чтобы работал VPN?","expected_runbook":"RB-030","reference_answer":"VPN-Users."}
+{"id":"Q023","question":"Почему через VPN интернет идёт не через офис?","expected_runbook":"RB-031","reference_answer":"Включён split tunneling: через VPN идёт только трафик во внутренние сети 10.0.0.0/8 и corp.local."}
+{"id":"Q024","question":"VPN отключается после получаса без активности — это баг?","expected_runbook":"RB-031","reference_answer":"Нет, сессия штатно разрывается после 30 минут бездействия или 12 часов работы."}
+{"id":"Q025","question":"На какой максимальный срок подрядчику дают VPN?","expected_runbook":"RB-032","reference_answer":"Не более 90 дней, продление — новой заявкой."}
+{"id":"Q026","question":"Кто должен согласовать удалённый доступ внешнему подрядчику?","expected_runbook":"RB-032","reference_answer":"Руководитель куратора, владелец системы и Security."}
+{"id":"Q027","question":"Сколько действует сертификат пользователя для VPN?","expected_runbook":"RB-033","reference_answer":"1 год."}
+{"id":"Q028","question":"Я в командировке, сертификат VPN уже истёк. Как мне подключиться?","expected_runbook":"RB-033","reference_answer":"Обратиться в ServiceDesk: выпустят временный сертификат на 72 часа и пришлют на личную почту из кадровой системы, пароль — SMS."}
+{"id":"Q029","question":"Какой адрес прокси-сервера в офисе?","expected_runbook":"RB-040","reference_answer":"proxy.corp.local:3128, настраивается через PAC-файл http://wpad.corp.local/wpad.dat."}
+{"id":"Q030","question":"Компьютер получил адрес 169.254, что это значит?","expected_runbook":"RB-040","reference_answer":"DHCP не выдал адрес: проверить кабель и порт, при повторении — заявка в Network с номером розетки."}
+{"id":"Q031","question":"Какая скорость у гостевого Wi-Fi?","expected_runbook":"RB-041","reference_answer":"10 Мбит/с на устройство, только интернет, клиенты изолированы."}
+{"id":"Q032","question":"При подключении к Wi-Fi CORP появилось предупреждение о сертификате, подключаться?","expected_runbook":"RB-041","reference_answer":"При первом подключении нормально, если сертификат выдан corp-radius.corp.local; иначе не подключаться и сообщить в Security."}
+{"id":"Q033","question":"Сколько рассматривают заявку на разблокировку сайта?","expected_runbook":"RB-042","reference_answer":"1 рабочий день, согласование руководителя и Security."}
+{"id":"Q034","question":"Можно ли разблокировать сторонний VPN-сервис для работы?","expected_runbook":"RB-042","reference_answer":"Нет, анонимайзеры и сторонние VPN не разблокируются ни при каких условиях."}
+{"id":"Q035","question":"Какие адреса у внутренних DNS-серверов?","expected_runbook":"RB-043","reference_answer":"10.10.0.10 (dns01) и 10.10.0.11 (dns02)."}
+{"id":"Q036","question":"Через сколько изменённая DNS-запись заработает у всех?","expected_runbook":"RB-043","reference_answer":"Не позже чем через TTL — 300 секунд (5 минут)."}
+{"id":"Q037","question":"Почему ноутбук тормозит в среду днём?","expected_runbook":"RB-050","reference_answer":"Каждую среду в 13:00 выполняется полная антивирусная проверка, замедление 30–60 минут."}
+{"id":"Q038","question":"Как заменить HDD на SSD в рабочем компьютере?","expected_runbook":"RB-050","reference_answer":"Заявка «Замена диска» по программе модернизации, выполняется за 3 рабочих дня с сохранением данных."}
+{"id":"Q039","question":"Можно ли поставить TeamViewer на рабочий компьютер?","expected_runbook":"RB-051","reference_answer":"Нет, средства удалённого доступа (AnyDesk, TeamViewer и аналоги) запрещены."}
+{"id":"Q040","question":"Программы нет в Software Center, сколько займёт установка по заявке?","expected_runbook":"RB-051","reference_answer":"3 рабочих дня с согласованием руководителя и Security; платное ПО — дольше из-за закупки."}
+{"id":"Q041","question":"Где лежат дампы после синего экрана?","expected_runbook":"RB-052","reference_answer":"C:\\Windows\\Minidump."}
+{"id":"Q042","question":"Что делать, если ремонт ноутбука после BSOD займёт полдня?","expected_runbook":"RB-052","reference_answer":"Если ремонт дольше 4 часов, выдаётся подменный ноутбук из резерва ServiceDesk (кабинет 2-105)."}
+{"id":"Q043","question":"За сколько дней HR должен оформить заявку на ноутбук для нового сотрудника?","expected_runbook":"RB-053","reference_answer":"Не позднее чем за 3 рабочих дня до выхода."}
+{"id":"Q044","question":"Через сколько лет положена плановая замена ноутбука?","expected_runbook":"RB-053","reference_answer":"Через 4 года."}
+{"id":"Q045","question":"Задания висят в очереди печати, как перезапустить службу?","expected_runbook":"RB-060","reference_answer":"Удалить зависшие задания и выполнить Restart-Service Spooler; затем переподключить принтер."}
+{"id":"Q046","question":"Через какой сервер подключены все принтеры?","expected_runbook":"RB-060","reference_answer":"print01.corp.local."}
+{"id":"Q047","question":"Сколько хранится задание FollowMe, если его не распечатали?","expected_runbook":"RB-061","reference_answer":"24 часа."}
+{"id":"Q048","question":"Кому доступна цветная печать?","expected_runbook":"RB-061","reference_answer":"Членам группы Print-Color (маркетинг, дизайн, секретариат), остальным — по заявке с согласованием руководителя."}
+{"id":"Q049","question":"Где взять новый картридж для МФУ?","expected_runbook":"RB-062","reference_answer":"На складе АХО (3 этаж, кабинет 3-101), заявка в категории «Печать», 1 рабочий день."}
+{"id":"Q050","question":"Как быстро приедет инженер по ремонту МФУ?","expected_runbook":"RB-062","reference_answer":"До 8 рабочих часов, вызов через ServiceDesk."}
+{"id":"Q051","question":"Почему скан большого договора не пришёл на почту?","expected_runbook":"RB-063","reference_answer":"Ограничение 15 МБ на письмо — сканировать в папку или уменьшить разрешение."}
+{"id":"Q052","question":"Сколько хранятся файлы в папке сканов?","expected_runbook":"RB-063","reference_answer":"30 дней, затем удаляются автоматически."}
+{"id":"Q053","question":"При каком заполнении диска сервера срабатывает critical-алерт?","expected_runbook":"RB-070","reference_answer":"95% (warning — 85%)."}
+{"id":"Q054","question":"Место на диске не освобождается после удаления логов — почему?","expected_runbook":"RB-070","reference_answer":"Файл удалён, но открыт процессом: найти через lsof +L1 и перезапустить процесс или выполнить truncate."}
+{"id":"Q055","question":"Когда срабатывает алерт по высокой загрузке CPU?","expected_runbook":"RB-071","reference_answer":"Загрузка выше 90% в течение 15 минут."}
+{"id":"Q056","question":"На сервере непонятный процесс грузит процессор на 100%, убить его?","expected_runbook":"RB-071","reference_answer":"Нет, не завершать: изолировать и сообщить в Security (возможен майнер, RB-111)."}
+{"id":"Q057","question":"Можно ли перезагрузить зависшую продуктивную виртуалку?","expected_runbook":"RB-072","reference_answer":"Только после согласования с владельцем сервиса или инцидент-менеджером, предварительно сделав скриншот консоли."}
+{"id":"Q058","question":"Упал хост ESXi, сколько ждать перезапуска виртуальных машин?","expected_runbook":"RB-072","reference_answer":"VMware HA перезапускает ВМ на других хостах в течение 5 минут."}
+{"id":"Q059","question":"Сколько действуют сертификаты Let's Encrypt и когда их продлевает cert-manager?","expected_runbook":"RB-073","reference_answer":"90 дней, продление за 30 дней до окончания."}
+{"id":"Q060","question":"Как проверить цепочку сертификата после замены?","expected_runbook":"RB-073","reference_answer":"openssl s_client -connect host:443 -showcerts."}
+{"id":"Q061","question":"С какой длительности запросы попадают в лог PostgreSQL?","expected_runbook":"RB-080","reference_answer":"Дольше 1 секунды (log_min_duration_statement = 1000)."}
+{"id":"Q062","question":"Как правильно создать индекс на продуктивной таблице?","expected_runbook":"RB-080","reference_answer":"Только CREATE INDEX CONCURRENTLY и через change request."}
+{"id":"Q063","question":"Приложение пишет too many clients already. Какой лимит соединений?","expected_runbook":"RB-081","reference_answer":"max_connections = 300; приложения должны подключаться через PgBouncer (порт 6432)."}
+{"id":"Q064","question":"Через сколько можно убивать сессии idle in transaction?","expected_runbook":"RB-081","reference_answer":"Дольше 10 минут, через pg_terminate_backend с уведомлением владельца приложения."}
+{"id":"Q065","question":"Когда делается полная резервная копия баз?","expected_runbook":"RB-082","reference_answer":"Каждое воскресенье в 02:00, дифференциальные — ежедневно, WAL — непрерывно."}
+{"id":"Q066","question":"Сколько хранятся бэкапы базы и какое RTO?","expected_runbook":"RB-082","reference_answer":"30 дней (ежемесячные — 1 год); RTO 4 часа для баз до 1 ТБ."}
+{"id":"Q067","question":"Как найти, какой процесс блокирует остальные запросы в Postgres?","expected_runbook":"RB-083","reference_answer":"Запрос к pg_stat_activity с pg_blocking_pids(pid); корневой — тот, кто сам не заблокирован."}
+{"id":"Q068","question":"Как не допустить очередь блокировок при ALTER TABLE в миграции?","expected_runbook":"RB-083","reference_answer":"Использовать SET lock_timeout = '5s'."}
+{"id":"Q069","question":"При каком отставании реплика исключается из балансировки чтения?","expected_runbook":"RB-084","reference_answer":"Больше 300 секунд (critical); warning — от 60 секунд."}
+{"id":"Q070","question":"Как посмотреть состояние кластера Patroni?","expected_runbook":"RB-084","reference_answer":"patronictl -c /etc/patroni/patroni.yml list."}
+{"id":"Q071","question":"Под падает с exit code 137, что это?","expected_runbook":"RB-090","reference_answer":"OOMKilled — превышен лимит памяти; увеличить limits или искать утечку."}
+{"id":"Q072","question":"Как посмотреть логи контейнера, который уже упал и перезапустился?","expected_runbook":"RB-090","reference_answer":"kubectl logs <pod> -n <ns> --previous."}
+{"id":"Q073","question":"Как называется секрет для скачивания образов из Harbor?","expected_runbook":"RB-091","reference_answer":"harbor-pull, создаётся робот-аккаунтом проекта Harbor."}
+{"id":"Q074","question":"Сборка падает с toomanyrequests при скачивании образа, что не так?","expected_runbook":"RB-091","reference_answer":"Образ тянется напрямую с Docker Hub — нужно использовать прокси-кэш registry.corp.local/dockerhub."}
+{"id":"Q075","question":"Какая квота ресурсов у namespace по умолчанию?","expected_runbook":"RB-092","reference_answer":"8 vCPU и 16 ГиБ памяти в requests."}
+{"id":"Q076","question":"Есть ли в кластере автомасштабирование узлов?","expected_runbook":"RB-092","reference_answer":"Нет, кластеры на собственном оборудовании; узлы добавляются ежеквартально."}
+{"id":"Q077","question":"Какой максимальный таймаут можно поставить на ingress для долгого запроса?","expected_runbook":"RB-093","reference_answer":"Не больше 300 секунд; по умолчанию 60, долгие операции переводить в асинхронный режим."}
+{"id":"Q078","question":"Чем 503 отличается от 502 на ingress?","expected_runbook":"RB-093","reference_answer":"503 — у сервиса нет ни одного endpoint (все поды not ready); 502 — нет живых подов или под закрыл соединение."}
+{"id":"Q079","question":"Какой таймаут у задачи в GitLab CI по умолчанию?","expected_runbook":"RB-100","reference_answer":"60 минут, максимум 3 часа."}
+{"id":"Q080","question":"Можно ли включить автоматический retry для нестабильных тестов?","expected_runbook":"RB-100","reference_answer":"Нет, retry разрешён только для ошибок инфраструктуры (runner_system_failure, stuck_or_timeout_failure)."}
+{"id":"Q081","question":"Деплой-задача висит в pending на моей feature-ветке, почему?","expected_runbook":"RB-101","reference_answer":"k8s-runner берёт задачи только с защищённых веток — это ожидаемо."}
+{"id":"Q082","question":"Сколько параллельных задач выполняет один docker-раннер?","expected_runbook":"RB-101","reference_answer":"concurrent = 10."}
+{"id":"Q083","question":"В какие дни и часы можно релизить в прод?","expected_runbook":"RB-102","reference_answer":"Вторник и четверг с 10:00 до 16:00; в пятницу заморозка."}
+{"id":"Q084","question":"Как откатить helm-релиз?","expected_runbook":"RB-102","reference_answer":"helm history <release> -n <ns>, затем helm rollback <release> <revision> -n <ns>; сообщить в #releases."}
+{"id":"Q085","question":"Закоммитил пароль в репозиторий, удалил коммит — этого достаточно?","expected_runbook":"RB-103","reference_answer":"Нет, нужно немедленно сменить секрет и в течение часа сообщить в Security."}
+{"id":"Q086","question":"Как часто нужно ротировать статические секреты сервисов?","expected_runbook":"RB-103","reference_answer":"Не реже раза в 180 дней."}
+{"id":"Q087","question":"Куда пересылать подозрительное письмо?","expected_runbook":"RB-110","reference_answer":"Кнопка «Сообщить о фишинге» в Outlook или переслать как вложение на phishing@corp.local."}
+{"id":"Q088","question":"Ввёл пароль на поддельном сайте из письма, что делать?","expected_runbook":"RB-110","reference_answer":"Немедленно сменить пароль на id.corp.local и позвонить в Security на доб. 5555."}
+{"id":"Q089","question":"Файлы на компьютере зашифровались, выключить его?","expected_runbook":"RB-111","reference_answer":"Нет: отключить от сети, но не выключать и не перезагружать, позвонить в Security (5555); это P1."}
+{"id":"Q090","question":"Какой антивирус стоит на рабочих местах?","expected_runbook":"RB-111","reference_answer":"Kaspersky Endpoint Security."}
+{"id":"Q091","question":"В какой срок нужно сообщить о потере ноутбука?","expected_runbook":"RB-112","reference_answer":"В течение 1 часа с момента обнаружения."}
+{"id":"Q092","question":"Удалят ли мои личные фото, если заблокируют потерянный телефон?","expected_runbook":"RB-112","reference_answer":"Нет, через MDM очищается только корпоративный профиль."}
+{"id":"Q093","question":"Как передать партнёру конфиденциальные документы?","expected_runbook":"RB-113","reference_answer":"Заявка «Передача данных», согласование Security; передача через share.corp.local или архивом AES-256 с паролем по другому каналу."}
+{"id":"Q094","question":"Насколько DLP может задержать письмо?","expected_runbook":"RB-113","reference_answer":"До 4 рабочих часов на проверку Security."}
+{"id":"Q095","question":"Сколько одновременных лицензий 1С есть в компании?","expected_runbook":"RB-120","reference_answer":"250 одновременных сеансов на сервере лицензий 1c-lic01."}
+{"id":"Q096","question":"Можно ли самому перезапустить агент сервера 1С?","expected_runbook":"RB-120","reference_answer":"Нет, только команда Apps; в рабочее время — с объявлением в #1c-users за 15 минут."}
+{"id":"Q097","question":"Когда выполняются ночные регламентные задания 1С?","expected_runbook":"RB-121","reference_answer":"С 01:00 до 05:00."}
+{"id":"Q098","question":"1С медленно работает через VPN из дома, как ускорить?","expected_runbook":"RB-121","reference_answer":"Использовать веб-клиент или RDP-ферму 1c-rds.corp.local."}
+{"id":"Q099","question":"Как часто CRM выгружает счета в 1С?","expected_runbook":"RB-122","reference_answer":"Каждые 15 минут, через сервис crm-1c-sync."}
+{"id":"Q100","question":"CRM не открывается у всего колл-центра — какой приоритет?","expected_runbook":"RB-122","reference_answer":"P1, сразу дежурный Apps и DevOps."}
+{"id":"Q101","question":"Кто согласует доступ к ЗУП?","expected_runbook":"RB-123","reference_answer":"Руководитель, директор по персоналу и Security."}
+{"id":"Q102","question":"Сколько ждать доступ к 1С после согласования заявки?","expected_runbook":"RB-123","reference_answer":"2 рабочих дня."}

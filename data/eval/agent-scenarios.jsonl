@@ -1,0 +1,17 @@
+{"id":"A01","kind":"docs","message":"Как войти, если я потерял телефон с аутентификатором и резервных кодов нет?","expected_tools":["search_docs"],"answer_any":["24"]}
+{"id":"A02","kind":"docs","message":"Можно ли выкатывать релиз в продуктив в пятницу?","expected_tools":["search_docs"],"answer_any":["заморозк","запрещ","нельзя"]}
+{"id":"A03","kind":"sql","message":"Сколько P1-инцидентов было в августе 2026?","expected_tools":["query_history"],"sql_check":"SELECT count(*) FROM incidents WHERE priority = 'P1' AND started_at >= '2026-08-01' AND started_at < '2026-09-01'"}
+{"id":"A04","kind":"sql","message":"Какая команда получила больше всего тикетов за год?","expected_tools":["query_history"],"sql_check":"SELECT team FROM tickets GROUP BY team ORDER BY count(*) DESC LIMIT 1"}
+{"id":"A05","kind":"sql","message":"Сколько тикетов по VPN нарушили SLA?","expected_tools":["query_history"],"sql_check":"SELECT count(*) FROM tickets WHERE category = 'vpn' AND sla_breached"}
+{"id":"A06","kind":"sql","message":"Какой отдел чаще всего обращался по проблемам с печатью?","expected_tools":["query_history"],"sql_check":"SELECT department FROM tickets WHERE category = 'printing' GROUP BY department ORDER BY count(*) DESC LIMIT 1"}
+{"id":"A07","kind":"sql","message":"Какие были корневые причины крупных инцидентов с VPN?","expected_tools":["query_history"],"answer_any":["прошивк","сертификат","питани"]}
+{"id":"A08","kind":"sql","message":"Сколько в среднем минут решались тикеты с приоритетом P2?","expected_tools":["query_history"],"sql_check":"SELECT round(avg(resolution_minutes)) FROM tickets WHERE priority = 'P2'"}
+{"id":"A09","kind":"ticket","message":"Какой статус у тикета T-2026-02994?","expected_tools":["get_ticket"],"answer_any":["in_progress","в работе"]}
+{"id":"A10","kind":"ticket","message":"Кто автор тикета T-2026-00002 и о чём он?","expected_tools":["get_ticket"],"answer_any":["Козлов"]}
+{"id":"A11","kind":"attachments","message":"Почему падает под из тикета T-2026-02535? Посмотри вложения.","expected_tools":["read_attachments"],"answer_any":["OOM","памят","512"]}
+{"id":"A12","kind":"attachments","message":"Что за ошибка в тикете T-2026-02994? Посмотри вложения и подскажи решение.","expected_tools":["read_attachments"],"answer_any":["лиценз","сеанс"]}
+{"id":"A13","kind":"create","message":"Заведи заявку: у всей бухгалтерии не работает 1С, никто не может войти","expected_tools":["create_ticket"],"expected_priority":"P2"}
+{"id":"A14","kind":"create","message":"Создай заявку: у меня сломалась мышка, нужна новая","expected_tools":["create_ticket"],"expected_priority":"P3|P4"}
+{"id":"A15","kind":"chat","message":"Привет! Что ты умеешь?","expected_tools":[]}
+{"id":"A16","kind":"offtopic","message":"Когда в компании выплачивают зарплату?","answer_any":["нет","не найд","не содерж","отсутств","не относится","HR","кадр"]}
+{"id":"A17","kind":"multi","message":"Сколько тикетов по VPN было в сентябре 2026 и что делать при ошибке FortiClient -12?","expected_tools":["query_history","search_docs"],"sql_check":"SELECT count(*) FROM tickets WHERE category = 'vpn' AND created_at >= '2026-09-01' AND created_at < '2026-10-01'"}

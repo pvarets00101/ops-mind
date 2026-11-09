@@ -1,0 +1,65 @@
+# Инфраструктура для локальной разработки (без GPU).
+# Запуск: docker compose -f deploy/docker-compose.yml up -d
+# Модели для Ollama (один раз):
+#   docker exec opsmind-ollama ollama pull qwen3:4b-instruct
+#   docker exec opsmind-ollama ollama pull bge-m3
+
+name: opsmind
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: opsmind-postgres
+    environment:
+      POSTGRES_USER: opsmind
+      POSTGRES_PASSWORD: opsmind
+      POSTGRES_DB: opsmind
+    ports: ["5433:5432"]   # 5433 снаружи: 5432 на этой машине занят другой базой (claude-bot-pg)
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.4
+    container_name: opsmind-qdrant
+    ports: ["6333:6333", "6334:6334"]
+    volumes: [qdrant:/qdrant/storage]
+
+  # S3-совместимое хранилище. MinIO перестал публиковать Docker-образы, поэтому SeaweedFS.
+  # Клиенты (AWSSDK.S3 и т.п.) работают с ним так же, как с MinIO/S3: endpoint http://localhost:8333
+  s3:
+    image: chrislusf/seaweedfs:4.48
+    container_name: opsmind-s3
+    command: server -dir=/data -s3 -s3.port=8333
+    environment:
+      AWS_ACCESS_KEY_ID: opsmind
+      AWS_SECRET_ACCESS_KEY: opsmind123
+    ports: ["8333:8333", "9333:9333"]
+    volumes: [s3data:/data]
+
+  # LLM-инференс на CPU. Позже рядом появится vLLM (CPU-backend) — см. docs/plan.md, этап 1.
+  ollama:
+    image: ollama/ollama:0.12.3
+    container_name: opsmind-ollama
+    environment:
+      # Окно контекста по умолчанию мало для агента (инструкции + схемы инструментов + результаты),
+      # а лишнее Ollama обрезает молча — модель «забывает» инструкции.
+      OLLAMA_CONTEXT_LENGTH: "8192"
+    ports: ["11434:11434"]
+    volumes: [ollama:/root/.ollama]
+
+  # Reranker для RAG: переоценивает пары «вопрос + фрагмент» точнее, чем сравнение векторов.
+  # TEI (Text Embeddings Inference) от Hugging Face, CPU-образ. Модель скачивается при первом старте (~2 ГБ).
+  reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+    container_name: opsmind-reranker
+    # Без лимита батча TEI при прогреве на CPU занимает >10 ГБ и падает по OOM (exit 137).
+    # --auto-truncate обязателен при лимите меньше max_input_length модели (8192); наши фрагменты короче 1000 токенов.
+    command: --model-id BAAI/bge-reranker-v2-m3 --max-batch-tokens 4096 --max-client-batch-size 32 --auto-truncate
+    ports: ["8081:80"]
+    volumes: [tei:/data]
+
+volumes:
+  tei:
+  pgdata:
+  qdrant:
+  s3data:
+  ollama:

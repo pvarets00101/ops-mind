@@ -1,0 +1,31 @@
+Name:             catalog-7d9f8b6c5-x2kqp
+Namespace:        catalog
+Node:             k8s-worker-04/10.40.1.14
+Labels:           app=catalog
+Status:           Running
+Containers:
+  catalog:
+    Image:          registry.corp.local/shop/catalog:v2.18.0
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    137
+      Started:      Mon, 21 Sep 2026 14:02:11 +0300
+      Finished:     Mon, 21 Sep 2026 14:04:57 +0300
+    Ready:          False
+    Restart Count:  17
+    Limits:
+      cpu:     1
+      memory:  512Mi
+    Requests:
+      cpu:     250m
+      memory:  256Mi
+    Environment:
+      CACHE_WARMUP_ON_START:  true
+      CACHE_MAX_ITEMS:        2000000
+Events:
+  Type     Reason     Age                  From     Message
+  ----     ------     ----                 ----     -------
+  Warning  BackOff    2m (x63 over 58m)    kubelet  Back-off restarting failed container catalog
+  Normal   Pulled     4m (x18 over 61m)    kubelet  Container image "registry.corp.local/shop/catalog:v2.18.0" already present on machine
