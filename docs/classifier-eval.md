@@ -2,6 +2,101 @@
 
 История запусков tools/OpsMind.ClassifierEval, новые сверху.
 
+## 2026-11-09 18:27 — sonnet (claude-cli), fewshot, схема, набор hard (60)
+
+| Валидный JSON | category | priority | team | Все три | Macro-F1 (priority) | Время на тикет |
+|---|---|---|---|---|---|---|
+| 100 % | 93 % | 83 % | 97 % | 80 % | 0.863 | 3.5 с |
+
+Матрица ошибок priority (строки — эталон, столбцы — ответ модели):
+
+| | P1 | P2 | P3 | P4 | иное |
+|---|---|---|---|---|---|
+| **P1** | 6 | 0 | 0 | 0 | 0 |
+| **P2** | 0 | 10 | 4 | 0 | 0 |
+| **P3** | 0 | 4 | 23 | 1 | 0 |
+| **P4** | 0 | 0 | 1 | 11 | 0 |
+
+Примеры ошибок (эталон → ответ):
+
+- H06: «Сайт поставщика не открывается — При заходе на портал поставщика пишет, что доступ запрещё…» network/P4/Security → security/P3/Security
+- H23: «Реплика отстает — Мониторинг: реплика orders-pg отстаёт на 200 секунд» database/P3/Database → database/P2/Database
+- H25: «Поды висят — поды payments висят в Pending, Insufficient cpu» kubernetes/P2/DevOps → kubernetes/P3/DevOps
+- H26: «504 на выгрузке — Выгрузка большого отчёта в reports падает с 504 ровно через минуту» kubernetes/P2/DevOps → server/P3/Infra
+- H29: «Закоммитил пароль — в репозиторий billing-api попал пароль от базы, коммит уже в main» cicd/P2/Security → security/P2/Security
+- H30: «Хотим откатить релиз — После выкатки orders-service в логах стало больше ошибок, хотим отк…» cicd/P2/DevOps → cicd/P3/DevOps
+- H42: «Ящик переполнен — пишет, что ящик заполнен, письма не уходят. Можно увеличить?» email/P3/ServiceDesk → email/P4/ServiceDesk
+- H47: «Принтер не печатает — на 2-105-MFP не проходит печать ни у кого из нашего кабинета, задани…» printing/P3/ServiceDesk → printing/P2/ServiceDesk
+- H52: «CPU 100% — на reports01 загрузка процессора 99% уже полчаса, в top какой-то незнакомый про…» server/P2/Infra → security/P2/Security
+- H58: «Вирус — Касперский нашёл троян и не может его вылечить» security/P2/Security → security/P3/Security
+- H59: «CRM не создаёт карточки звонков — входящие звонки не появляются в CRM уже час» business_app/P3/Apps → business_app/P2/Apps
+- H60: «1С медленно проводит документы — проведение реализации в УТ идёт по минуте, ошибка «превыш…» business_app/P3/Apps → business_app/P2/Apps
+
+## 2026-11-09 18:24 — haiku (claude-cli), fewshot, схема, набор hard (60)
+
+| Валидный JSON | category | priority | team | Все три | Macro-F1 (priority) | Время на тикет |
+|---|---|---|---|---|---|---|
+| 100 % | 87 % | 88 % | 90 % | 77 % | 0.906 | 4.3 с |
+
+Матрица ошибок priority (строки — эталон, столбцы — ответ модели):
+
+| | P1 | P2 | P3 | P4 | иное |
+|---|---|---|---|---|---|
+| **P1** | 6 | 0 | 0 | 0 | 0 |
+| **P2** | 0 | 14 | 0 | 0 | 0 |
+| **P3** | 0 | 5 | 23 | 0 | 0 |
+| **P4** | 0 | 0 | 2 | 10 | 0 |
+
+Примеры ошибок (эталон → ответ):
+
+- H06: «Сайт поставщика не открывается — При заходе на портал поставщика пишет, что доступ запрещё…» network/P4/Security → security/P3/Security
+- H19: «Добавьте в ЗУП — Новому кадровику нужен доступ к ЗУП с ролью кадровика» business_app/P4/Apps → access/P4/ServiceDesk
+- H21: «Отчёт по продажам тормозит — Отчёт в analytics-pg раньше строился за минуту, теперь 15 мин…» database/P3/Database → database/P2/Database
+- H22: «Восстановить справочник — Случайно удалили справочник в crm-pg вчера вечером, нужно восста…» database/P3/Database → database/P2/Database
+- H23: «Реплика отстает — Мониторинг: реплика orders-pg отстаёт на 200 секунд» database/P3/Database → database/P2/Database
+- H26: «504 на выгрузке — Выгрузка большого отчёта в reports падает с 504 ровно через минуту» kubernetes/P2/DevOps → server/P2/Infra
+- H29: «Закоммитил пароль — в репозиторий billing-api попал пароль от базы, коммит уже в main» cicd/P2/Security → security/P2/Security
+- H37: «VPN для подрядчика — Нужен доступ подрядчику ООО «ДатаПро» к стенду stage-api-01 на месяц,…» vpn/P4/Network → access/P4/ServiceDesk
+- H41: «Почта не работает — ни у кого в компании не отправляются и не приходят письма уже 15 минут» email/P1/Infra → email/P1/ServiceDesk
+- H48: «Скан не приходит — сканирую на почту договор на 40 страниц, письмо так и не пришло» printing/P3/ServiceDesk → email/P3/ServiceDesk
+- H52: «CPU 100% — на reports01 загрузка процессора 99% уже полчаса, в top какой-то незнакомый про…» server/P2/Infra → security/P2/Security
+- H57: «Передать данные партнёру — DLP задержала письмо с выгрузкой договоров для ГК «Меридиан», к…» security/P4/Security → email/P3/Infra
+- H59: «CRM не создаёт карточки звонков — входящие звонки не появляются в CRM уже час» business_app/P3/Apps → business_app/P2/Apps
+- H60: «1С медленно проводит документы — проведение реализации в УТ идёт по минуте, ошибка «превыш…» business_app/P3/Apps → business_app/P2/Apps
+
+## 2026-11-09 18:21 — qwen3:4b-instruct (ollama), fewshot, схема, набор hard (60)
+
+| Валидный JSON | category | priority | team | Все три | Macro-F1 (priority) | Время на тикет |
+|---|---|---|---|---|---|---|
+| 100 % | 75 % | 70 % | 78 % | 52 % | 0.696 | 1.5 с |
+
+Матрица ошибок priority (строки — эталон, столбцы — ответ модели):
+
+| | P1 | P2 | P3 | P4 | иное |
+|---|---|---|---|---|---|
+| **P1** | 5 | 0 | 0 | 1 | 0 |
+| **P2** | 2 | 7 | 4 | 1 | 0 |
+| **P3** | 0 | 4 | 20 | 4 | 0 |
+| **P4** | 0 | 0 | 2 | 10 | 0 |
+
+Примеры ошибок (эталон → ответ):
+
+- H01: «Не могу зайти в почту с телефона — После того как поменял пароль, на айфоне перестала прих…» access/P3/ServiceDesk → access/P2/ServiceDesk
+- H04: «Нужен доступ к папке маркетинга — Перевели в маркетинг, прошу доступ на запись к \\fs01\Ma…» access/P4/ServiceDesk → access/P3/ServiceDesk
+- H06: «Сайт поставщика не открывается — При заходе на портал поставщика пишет, что доступ запрещё…» network/P4/Security → access/P3/ServiceDesk
+- H07: «Упал каталог на сайте — После релиза все поды catalog в CrashLoopBackOff, клиенты на сайте…» kubernetes/P1/DevOps → server/P1/Infra
+- H12: «Тормозит комп ужасно — Компьютер грузится по 10 минут, диск всё время на 100 процентах, ра…» workstation/P3/ServiceDesk → workstation/P2/ServiceDesk
+- H13: «фишинг? — пришло письмо от «службы безопасности», что мой ящик заблокируют, если не подтве…» security/P3/Security → security/P2/Security
+- H14: «Ввела пароль не там — кликнула на ссылку из письма про премию и ввела логин и пароль, пото…» security/P2/Security → access/P4/ServiceDesk
+- H15: «Украли ноутбук — В метро украли рабочий ноутбук вместе с рюкзаком» security/P2/Security → access/P2/ServiceDesk
+- H16: «Все файлы переименовались — у меня на диске все файлы теперь с расширением .locked и какой…» security/P1/Security → workstation/P4/ServiceDesk
+- H19: «Добавьте в ЗУП — Новому кадровику нужен доступ к ЗУП с ролью кадровика» business_app/P4/Apps → access/P4/ServiceDesk
+- H20: «Too many clients — orders-service сыплет FATAL: sorry, too many clients already, заказы оф…» database/P2/Database → server/P2/Infra
+- H22: «Восстановить справочник — Случайно удалили справочник в crm-pg вчера вечером, нужно восста…» database/P3/Database → database/P2/Database
+- H24: «Релиз не стартует — новый релиз notifications не поднимается, ImagePullBackOff, unauthoriz…» kubernetes/P3/DevOps → cicd/P3/DevOps
+- H25: «Поды висят — поды payments висят в Pending, Insufficient cpu» kubernetes/P2/DevOps → kubernetes/P3/DevOps
+- H26: «504 на выгрузке — Выгрузка большого отчёта в reports падает с 504 ровно через минуту» kubernetes/P2/DevOps → server/P3/Infra
+
 ## 2026-11-09 17:57 — sonnet (claude-cli), fewshot, схема, набор hard (60)
 
 | Валидный JSON | category | priority | team | Все три | Macro-F1 (priority) | Время на тикет |

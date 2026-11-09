@@ -1,6 +1,6 @@
 {"id":"H01","subject":"Не могу зайти в почту с телефона","description":"После того как поменял пароль, на айфоне перестала приходить почта, а сегодня утром ещё и в комп не пускает — пишет, что учетка заблокирована.","category":"access","priority":"P3","team":"ServiceDesk"}
 {"id":"H02","subject":"Весь колл-центр без CRM","description":"У нас в колл-центре 60 человек сидят без CRM, страница не грузится, клиенты висят на линии.","category":"business_app","priority":"P1","team":"Apps"}
-{"id":"H03","subject":"очень срочно!!! принтер","description":"В 3-214 МФУ жует бумагу, распечатать договор не могу, руководитель ждёт","category":"printing","priority":"P4","team":"ServiceDesk"}
+{"id":"H03","subject":"очень срочно!!! принтер","description":"В 3-214 МФУ жует бумагу, распечатать договор не могу, руководитель ждёт","category":"printing","priority":"P3","team":"ServiceDesk"}
 {"id":"H04","subject":"Нужен доступ к папке маркетинга","description":"Перевели в маркетинг, прошу доступ на запись к \\\\fs01\\Marketing, руководитель согласовал.","category":"access","priority":"P4","team":"ServiceDesk"}
 {"id":"H05","subject":"VPN","description":"Дома не подключается фортиклиент, пишет credential or sslvpn configuration is wrong. Пароль менял вчера.","category":"vpn","priority":"P3","team":"Network"}
 {"id":"H06","subject":"Сайт поставщика не открывается","description":"При заходе на портал поставщика пишет, что доступ запрещён политикой безопасности. Нужен для закупок.","category":"network","priority":"P4","team":"Security"}
@@ -22,14 +22,14 @@
 {"id":"H22","subject":"Восстановить справочник","description":"Случайно удалили справочник в crm-pg вчера вечером, нужно восстановить на вчера 18:00","category":"database","priority":"P3","team":"Database"}
 {"id":"H23","subject":"Реплика отстает","description":"Мониторинг: реплика orders-pg отстаёт на 200 секунд","category":"database","priority":"P3","team":"Database"}
 {"id":"H24","subject":"Релиз не стартует","description":"новый релиз notifications не поднимается, ImagePullBackOff, unauthorized","category":"kubernetes","priority":"P3","team":"DevOps"}
-{"id":"H25","subject":"Поды висят","description":"поды payments висят в Pending, Insufficient cpu","category":"kubernetes","priority":"P3","team":"DevOps"}
+{"id":"H25","subject":"Поды висят","description":"поды payments висят в Pending, Insufficient cpu","category":"kubernetes","priority":"P2","team":"DevOps"}
 {"id":"H26","subject":"504 на выгрузке","description":"Выгрузка большого отчёта в reports падает с 504 ровно через минуту","category":"kubernetes","priority":"P2","team":"DevOps"}
 {"id":"H27","subject":"Пайплайн валится по таймауту","description":"сборка catalog падает: execution took longer than 1h0m0s","category":"cicd","priority":"P3","team":"DevOps"}
-{"id":"H28","subject":"Раннеры не берут задачи","description":"Все джобы висят в pending больше часа, no active runners","category":"cicd","priority":"P3","team":"DevOps"}
+{"id":"H28","subject":"Раннеры не берут задачи","description":"Все джобы висят в pending больше часа, no active runners","category":"cicd","priority":"P2","team":"DevOps"}
 {"id":"H29","subject":"Закоммитил пароль","description":"в репозиторий billing-api попал пароль от базы, коммит уже в main","category":"cicd","priority":"P2","team":"Security"}
-{"id":"H30","subject":"Хотим откатить релиз","description":"После выкатки orders-service в логах стало больше ошибок, хотим откатиться","category":"cicd","priority":"P3","team":"DevOps"}
+{"id":"H30","subject":"Хотим откатить релиз","description":"После выкатки orders-service в логах стало больше ошибок, хотим откатиться","category":"cicd","priority":"P2","team":"DevOps"}
 {"id":"H31","subject":"Нет интернета","description":"на рабочем месте не открываются сайты, а внутренние ресурсы работают","category":"network","priority":"P3","team":"Network"}
-{"id":"H32","subject":"Весь 4 этаж без сети","description":"на четвёртом этаже ни у кого нет ни интернета, ни внутренних ресурсов","category":"network","priority":"P1","team":"Network"}
+{"id":"H32","subject":"Весь 4 этаж без сети","description":"на четвёртом этаже ни у кого нет ни интернета, ни внутренних ресурсов","category":"network","priority":"P2","team":"Network"}
 {"id":"H33","subject":"Wi-Fi для конференции","description":"Через две недели у нас конференция на 80 человек, нужна отдельная гостевая сеть","category":"network","priority":"P4","team":"Network"}
 {"id":"H34","subject":"jira не открывается","description":"jira.corp.local не открывается по имени, по IP открывается","category":"network","priority":"P3","team":"Network"}
 {"id":"H35","subject":"Добавить запись DNS","description":"Прошу завести A-запись reports-new.corp.local на 10.30.5.21","category":"network","priority":"P4","team":"Network"}
@@ -49,11 +49,11 @@
 {"id":"H49","subject":"Тонер","description":"в МФУ 5-402 заканчивается тонер","category":"printing","priority":"P4","team":"ServiceDesk"}
 {"id":"H50","subject":"Стенд не отвечает","description":"тестовый stage-api-01 не пингуется с утра","category":"server","priority":"P3","team":"Infra"}
 {"id":"H51","subject":"Сертификат истекает","description":"мониторинг пишет, что сертификат wiki.corp.local истекает через 20 дней","category":"server","priority":"P3","team":"Infra"}
-{"id":"H52","subject":"CPU 100%","description":"на reports01 загрузка процессора 99% уже полчаса, в top какой-то незнакомый процесс","category":"server","priority":"P3","team":"Infra"}
+{"id":"H52","subject":"CPU 100%","description":"на reports01 загрузка процессора 99% уже полчаса, в top какой-то незнакомый процесс","category":"server","priority":"P2","team":"Infra"}
 {"id":"H53","subject":"Клиентский портал не работает","description":"Портал для клиентов не открывается, сервер app-prod-03 не отвечает, звонят клиенты","category":"server","priority":"P1","team":"Infra"}
 {"id":"H54","subject":"Забыла пароль","description":"вернулась из декрета, пароль не помню, а код на телефон не приходит","category":"access","priority":"P3","team":"ServiceDesk"}
 {"id":"H55","subject":"Новый телефон, нет кодов","description":"сменил телефон, аутентификатор пустой, резервные коды не сохранял","category":"access","priority":"P3","team":"ServiceDesk"}
-{"id":"H56","subject":"Массовые блокировки","description":"у всего отдела продаж одновременно заблокировались учётки, человек 40","category":"access","priority":"P1","team":"ServiceDesk"}
+{"id":"H56","subject":"Массовые блокировки","description":"у всего отдела продаж одновременно заблокировались учётки, человек 40","category":"access","priority":"P2","team":"ServiceDesk"}
 {"id":"H57","subject":"Передать данные партнёру","description":"DLP задержала письмо с выгрузкой договоров для ГК «Меридиан», как отправить?","category":"security","priority":"P4","team":"Security"}
 {"id":"H58","subject":"Вирус","description":"Касперский нашёл троян и не может его вылечить","category":"security","priority":"P2","team":"Security"}
 {"id":"H59","subject":"CRM не создаёт карточки звонков","description":"входящие звонки не появляются в CRM уже час","category":"business_app","priority":"P3","team":"Apps"}

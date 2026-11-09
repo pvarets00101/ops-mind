@@ -79,7 +79,12 @@ public sealed class ClaudeCliChatClient : IChatClient {
             var sawText = false;
             ClaudeStreamEvent.Result? result = null;
 
+            // Отладочная трасса: промпты и сырой вывод одного запроса в отдельном файле.
+            await using var trace = OpenTrace(responseId, system, prompt, schema);
+
             while (await ReadLineAsync(process, timeout.Token, cancellationToken) is { } line) {
+                if (trace is not null)
+                    await trace.WriteLineAsync(line);
                 switch (ClaudeStreamEvent.Parse(line)) {
                     case ClaudeStreamEvent.Init init:
                         // Защита: если аргумент --tools "" потерялся по дороге (cmd.exe, другая версия CLI),
@@ -232,6 +237,16 @@ public sealed class ClaudeCliChatClient : IChatClient {
         options?.ResponseFormat is ChatResponseFormatJson json
             ? json.Schema is { } s ? JsonSerializer.Serialize(s) : """{"type":"object"}"""
             : null;
+
+    StreamWriter? OpenTrace(string responseId, string system, string prompt, string? schema) {
+        if (string.IsNullOrWhiteSpace(_options.TraceDirectory))
+            return null;
+        Directory.CreateDirectory(_options.TraceDirectory);
+        var path = Path.Combine(_options.TraceDirectory, $"{DateTime.Now:HHmmss}-{responseId[..8]}.log");
+        var writer = new StreamWriter(path, append: false, new UTF8Encoding(false));
+        writer.WriteLine($"=== SYSTEM ===\n{system}\n=== PROMPT ===\n{prompt}\n=== SCHEMA ===\n{schema ?? "(нет)"}\n=== STREAM ===");
+        return writer;
+    }
 
     static void Add(ProcessStartInfo psi, string name, string value) {
         psi.ArgumentList.Add(name);

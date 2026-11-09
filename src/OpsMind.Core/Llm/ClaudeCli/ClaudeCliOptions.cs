@@ -28,4 +28,10 @@ public sealed class ClaudeCliOptions {
     /// а из папки проекта CLI мог бы подхватить CLAUDE.md. По умолчанию — %TEMP%/opsmind-claude.
     /// </summary>
     public string? WorkingDirectory { get; set; }
+
+    /// <summary>
+    /// Отладка: папка, куда сохраняется для каждого запроса системный промпт, вопрос и сырой вывод stream-json.
+    /// Пусто — не сохранять. Нужна, чтобы увидеть, что происходило внутри CLI (например, отклонённые вызовы StructuredOutput).
+    /// </summary>
+    public string? TraceDirectory { get; set; }
 }
