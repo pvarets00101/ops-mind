@@ -24,7 +24,7 @@ insert_final_newline = false
 [*.{cs,vb}]
 
 # Organize usings
-dotnet_separate_import_directive_groups = true
+dotnet_separate_import_directive_groups = false
 dotnet_sort_system_directives_first = true
 file_header_template = unset
 
@@ -141,12 +141,13 @@ csharp_using_directive_placement = outside_namespace:silent
 #### C# Formatting Rules ####
 
 # New line preferences
-csharp_new_line_before_catch = true
-csharp_new_line_before_else = true
-csharp_new_line_before_finally = true
+csharp_new_line_before_catch = false
+csharp_new_line_before_else = false
+csharp_new_line_before_finally = false
 csharp_new_line_before_members_in_anonymous_types = true
 csharp_new_line_before_members_in_object_initializers = true
-csharp_new_line_before_open_brace = all
+# K&R: открывающая скобка всегда на строке объявления (класс, метод, if, лямбда, инициализатор); } else {
+csharp_new_line_before_open_brace = none
 csharp_new_line_between_query_expression_clauses = true
 
 # Indentation preferences
@@ -376,3 +377,18 @@ dotnet_naming_style.s_camelcase.required_suffix =
 dotnet_naming_style.s_camelcase.word_separator = 
 dotnet_naming_style.s_camelcase.capitalization = camel_case
 
+
+# K&R для Rider/ReSharper (он читает свои ключи, а не только csharp_new_line_*)
+[*.cs]
+resharper_brace_style = end_of_line
+resharper_type_declaration_braces = end_of_line
+resharper_invocable_declaration_braces = end_of_line
+resharper_accessor_owner_declaration_braces = end_of_line
+resharper_accessor_declaration_braces = end_of_line
+resharper_case_block_braces = end_of_line
+resharper_initializer_braces = end_of_line
+resharper_anonymous_method_declaration_braces = end_of_line
+resharper_other_braces = end_of_line
+resharper_place_else_on_new_line = false
+resharper_place_catch_on_new_line = false
+resharper_place_finally_on_new_line = false

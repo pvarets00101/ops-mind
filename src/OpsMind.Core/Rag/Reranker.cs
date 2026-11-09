@@ -11,11 +11,9 @@ namespace OpsMind.Core.Rag;
 /// видит, отвечает ли фрагмент именно на этот вопрос. Это точнее, но в разы дороже, поэтому
 /// reranker переоценивает только 20 кандидатов, найденных обычным поиском.
 /// </summary>
-public sealed class Reranker(HttpClient http)
-{
+public sealed class Reranker(HttpClient http) {
     /// <summary>Возвращает кандидатов, отсортированных по оценке reranker'а (0..1), с этой оценкой в RerankScore.</summary>
-    public async Task<IReadOnlyList<SearchHit>> RerankAsync(string query, IReadOnlyList<SearchHit> candidates, int topK, CancellationToken ct = default)
-    {
+    public async Task<IReadOnlyList<SearchHit>> RerankAsync(string query, IReadOnlyList<SearchHit> candidates, int topK, CancellationToken ct = default) {
         if (candidates.Count == 0)
             return candidates;
 

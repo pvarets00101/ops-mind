@@ -1,7 +1,6 @@
 namespace OpsMind.Core.Rag;
 
-public sealed class RagOptions
-{
+public sealed class RagOptions {
     public const string SectionName = "Rag";
 
     public string QdrantHost { get; set; } = "localhost";

@@ -22,8 +22,7 @@ var major = Templates.All.Where(t => t.IsMajor).ToArray();
 
 // ---------- крупные инциденты ----------
 var incidents = new List<Incident>();
-for (var i = 1; i <= 30; i++)
-{
+for (var i = 1; i <= 30; i++) {
     var t = Pick(major);
     var started = WorkTime(RandomDate());
     var duration = t.Priority == "P1" ? rnd.Next(25, 300) : rnd.Next(40, 480);
@@ -38,11 +37,9 @@ incidents.Sort((a, b) => a.StartedAt.CompareTo(b.StartedAt));
 var tickets = new List<Ticket>();
 var seen = new HashSet<string>();
 
-foreach (var inc in incidents)
-{
+foreach (var inc in incidents) {
     var count = rnd.Next(2, 9);
-    for (var k = 0; k < count; k++)
-    {
+    for (var k = 0; k < count; k++) {
         var created = inc.StartedAt.AddMinutes(rnd.Next(0, Math.Max(5, (int)(inc.ResolvedAt - inc.StartedAt).TotalMinutes / 2)));
         AddTicket(inc.Template, created, inc);
     }
@@ -58,8 +55,7 @@ for (var i = 0; i < tickets.Count; i++)
     tickets[i] = tickets[i] with { Id = $"T-2026-{i + 1:D5}" };
 
 // ---------- запись ----------
-var json = new JsonSerializerOptions
-{
+var json = new JsonSerializerOptions {
     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -78,8 +74,7 @@ foreach (var g in tickets.GroupBy(t => t.Category).OrderByDescending(g => g.Coun
 return;
 
 // ---------- генерация ----------
-void AddTicket(TicketTemplate t, DateTimeOffset created, Incident? inc)
-{
+void AddTicket(TicketTemplate t, DateTimeOffset created, Incident? inc) {
     var subject = Fill(Pick(t.Subjects));
     var body = Pick(Slots.Greetings) + Fill(Pick(t.Descriptions)) + Pick(Slots.Closings);
     if (!seen.Add(subject + "|" + body))
@@ -92,8 +87,7 @@ void AddTicket(TicketTemplate t, DateTimeOffset created, Incident? inc)
     var status = created > periodEnd.AddDays(-3) ? Pick(["new", "in_progress"]) : "resolved";
     DateTimeOffset? resolved = null;
     int? minutes = null;
-    if (status == "resolved")
-    {
+    if (status == "resolved") {
         minutes = inc is not null
             ? Math.Max(1, (int)(inc.ResolvedAt - created).TotalMinutes)
             : ResolutionMinutes(priority);
@@ -121,24 +115,21 @@ void AddTicket(TicketTemplate t, DateTimeOffset created, Incident? inc)
 }
 
 // Распределение времени решения: большинство укладывается в SLA, около 7% нарушают.
-int ResolutionMinutes(string priority)
-{
+int ResolutionMinutes(string priority) {
     var sla = SlaMinutes(priority);
     var share = rnd.NextDouble() < 0.07 ? 1.05 + rnd.NextDouble() : 0.05 + rnd.NextDouble() * 0.9;
     return Math.Max(5, (int)(sla * share));
 }
 
 // SLA решения из RB-001 в календарных минутах (упрощение: рабочие дни ≈ 24 часа).
-static int SlaMinutes(string priority) => priority switch
-{
+static int SlaMinutes(string priority) => priority switch {
     "P1" => 4 * 60,
     "P2" => 8 * 60,
     "P3" => 3 * 24 * 60,
     _ => 10 * 24 * 60,
 };
 
-string Fill(string template) => Regex.Replace(template, @"\{(\w+)\}", m => m.Groups[1].Value switch
-{
+string Fill(string template) => Regex.Replace(template, @"\{(\w+)\}", m => m.Groups[1].Value switch {
     "login" => Pick(Slots.Logins),
     "fio" => Pick(Slots.People),
     "dept" => Pick(Slots.Departments),
@@ -165,11 +156,9 @@ string Fill(string template) => Regex.Replace(template, @"\{(\w+)\}", m => m.Gro
 
 T Pick<T>(T[] items) => items[rnd.Next(items.Length)];
 
-TicketTemplate PickWeighted(TicketTemplate[] items, int total)
-{
+TicketTemplate PickWeighted(TicketTemplate[] items, int total) {
     var x = rnd.Next(total);
-    foreach (var t in items)
-    {
+    foreach (var t in items) {
         if ((x -= t.Weight) < 0)
             return t;
     }
@@ -180,8 +169,7 @@ DateTimeOffset RandomDate() =>
     periodStart.AddMinutes(rnd.NextInt64((long)(periodEnd - periodStart).TotalMinutes));
 
 // 85% обращений приходится на рабочее время пн–пт 09:00–18:00.
-DateTimeOffset WorkTime(DateTimeOffset d)
-{
+DateTimeOffset WorkTime(DateTimeOffset d) {
     if (rnd.NextDouble() > 0.85)
         return d;
     while (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
@@ -189,21 +177,18 @@ DateTimeOffset WorkTime(DateTimeOffset d)
     return new DateTimeOffset(d.Year, d.Month, d.Day, rnd.Next(9, 18), rnd.Next(60), 0, d.Offset);
 }
 
-static (string, string) Split(string s)
-{
+static (string, string) Split(string s) {
     var parts = s.Split('|');
     return (parts[0], parts[1]);
 }
 
 // ---------- вывод ----------
-static void WriteJsonl<T>(string path, IEnumerable<T> rows, JsonSerializerOptions options)
-{
+static void WriteJsonl<T>(string path, IEnumerable<T> rows, JsonSerializerOptions options) {
     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
     File.WriteAllLines(path, rows.Select(r => JsonSerializer.Serialize(r, options)), new UTF8Encoding(false));
 }
 
-void WriteFinetune(string dir, List<Ticket> all, JsonSerializerOptions options)
-{
+void WriteFinetune(string dir, List<Ticket> all, JsonSerializerOptions options) {
     const string system =
         "Ты классификатор обращений IT-поддержки. Верни JSON с полями category, priority, team. " +
         "category: access, email, vpn, network, workstation, printing, server, database, kubernetes, cicd, security, business_app. " +
@@ -212,20 +197,16 @@ void WriteFinetune(string dir, List<Ticket> all, JsonSerializerOptions options)
     var shuffled = all.OrderBy(_ => rnd.Next()).ToList();
     var trainEnd = (int)(shuffled.Count * 0.8);
     var valEnd = (int)(shuffled.Count * 0.9);
-    var splits = new Dictionary<string, List<Ticket>>
-    {
+    var splits = new Dictionary<string, List<Ticket>> {
         ["train"] = shuffled[..trainEnd],
         ["val"] = shuffled[trainEnd..valEnd],
         ["test"] = shuffled[valEnd..],
     };
 
-    foreach (var (name, items) in splits)
-    {
-        var rows = items.Select(t => new
-        {
+    foreach (var (name, items) in splits) {
+        var rows = items.Select(t => new {
             id = t.Id,
-            messages = new object[]
-            {
+            messages = new object[] {
                 new { role = "system", content = system },
                 new { role = "user", content = $"Тема: {t.Subject}\nОписание: {t.Description}" },
                 new { role = "assistant", content = JsonSerializer.Serialize(new { category = t.Category, priority = t.Priority, team = t.Team }) },
@@ -235,19 +216,16 @@ void WriteFinetune(string dir, List<Ticket> all, JsonSerializerOptions options)
     }
 }
 
-static void WriteSqlSeed(string path, List<Incident> incidents, List<Ticket> tickets)
-{
+static void WriteSqlSeed(string path, List<Incident> incidents, List<Ticket> tickets) {
     var sb = new StringBuilder("-- Сгенерировано tools/OpsMind.DataGen. Не редактировать вручную.\nBEGIN;\nTRUNCATE tickets, incidents;\n\n");
-    foreach (var i in incidents)
-    {
+    foreach (var i in incidents) {
         sb.Append("INSERT INTO incidents VALUES (")
             .AppendJoin(", ", Q(i.Id), Q(i.Title), Q(i.Service), Q(i.Category), Q(i.Priority), Q(i.Team), Q(i.RunbookId),
                 Q(i.StartedAt), Q(i.ResolvedAt), Q(i.RootCause), Q(i.Resolution), i.AffectedUsers.ToString())
             .Append(");\n");
     }
     sb.Append('\n');
-    foreach (var t in tickets)
-    {
+    foreach (var t in tickets) {
         sb.Append("INSERT INTO tickets VALUES (")
             .AppendJoin(", ", Q(t.Id), Q(t.CreatedAt), Q(t.Channel), Q(t.Department), Q(t.Requester), t.IsVip ? "true" : "false",
                 Q(t.Subject), Q(t.Description), Q(t.Category), Q(t.Priority), Q(t.Team), Q(t.RunbookId), Q(t.Status),
@@ -258,16 +236,14 @@ static void WriteSqlSeed(string path, List<Incident> incidents, List<Ticket> tic
     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
     File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
 
-    static string Q(object? v) => v switch
-    {
+    static string Q(object? v) => v switch {
         null => "NULL",
         DateTimeOffset d => $"'{d:yyyy-MM-dd HH:mm:sszzz}'",
         _ => $"'{v.ToString()!.Replace("'", "''")}'",
     };
 }
 
-static string FindRepoRoot()
-{
+static string FindRepoRoot() {
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "OpsMind.sln")))
         dir = dir.Parent;
@@ -282,12 +258,19 @@ record Ticket(
 record Incident(
     string Id, string Title, string Service, string Category, string Priority, string Team, string RunbookId,
     DateTimeOffset StartedAt, DateTimeOffset ResolvedAt, string RootCause, string Resolution, int AffectedUsers,
-    [property: JsonIgnore] TicketTemplate Template)
-{
-    public object ToRow() => new
-    {
-        id = Id, title = Title, service = Service, category = Category, priority = Priority, team = Team,
-        runbook_id = RunbookId, started_at = StartedAt, resolved_at = ResolvedAt, root_cause = RootCause,
-        resolution = Resolution, affected_users = AffectedUsers,
+    [property: JsonIgnore] TicketTemplate Template) {
+    public object ToRow() => new {
+        id = Id,
+        title = Title,
+        service = Service,
+        category = Category,
+        priority = Priority,
+        team = Team,
+        runbook_id = RunbookId,
+        started_at = StartedAt,
+        resolved_at = ResolvedAt,
+        root_cause = RootCause,
+        resolution = Resolution,
+        affected_users = AffectedUsers,
     };
 }

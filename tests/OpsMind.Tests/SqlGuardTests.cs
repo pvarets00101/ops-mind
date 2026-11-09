@@ -2,14 +2,12 @@ using OpsMind.Core.Agent;
 
 namespace OpsMind.Tests;
 
-public class SqlGuardTests
-{
+public class SqlGuardTests {
     [Theory]
     [InlineData("SELECT count(*) FROM tickets")]
     [InlineData("select team, count(*) from tickets group by team;")]
     [InlineData("WITH t AS (SELECT * FROM tickets) SELECT count(*) FROM t")]
-    public void Check_AllowsSelect_AndWrapsWithLimit(string sql)
-    {
+    public void Check_AllowsSelect_AndWrapsWithLimit(string sql) {
         var check = SqlGuard.Check(sql, 30);
 
         Assert.True(check.IsValid, check.Error);
@@ -25,8 +23,7 @@ public class SqlGuardTests
     [InlineData("SELECT pg_sleep(100)")]
     [InlineData("SELECT pg_read_file('/etc/passwd')")]
     [InlineData("")]
-    public void Check_RejectsDangerousOrInvalid(string sql)
-    {
+    public void Check_RejectsDangerousOrInvalid(string sql) {
         var check = SqlGuard.Check(sql, 30);
 
         Assert.False(check.IsValid);

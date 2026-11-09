@@ -6,8 +6,7 @@ namespace OpsMind.Core.Rag;
 public sealed record RagAnswer(string Answer, IReadOnlyList<SearchHit> Sources, bool Grounded);
 
 /// <summary>Отвечает на вопрос по найденным фрагментам базы знаний, со ссылками на источники.</summary>
-public sealed class RagAnswerer(KnowledgeBase knowledgeBase, IChatClient chat, RagOptions options)
-{
+public sealed class RagAnswerer(KnowledgeBase knowledgeBase, IChatClient chat, RagOptions options) {
     const string NotFound = "В базе знаний нет ответа на этот вопрос. Создайте обращение на https://help.corp.local.";
 
     const string SystemPrompt = """
@@ -21,8 +20,7 @@ public sealed class RagAnswerer(KnowledgeBase knowledgeBase, IChatClient chat, R
         Учётная запись блокируется на 30 минут после 5 неверных попыток ввода пароля. [RB-011]
         """;
 
-    public async Task<RagAnswer> AskAsync(string question, CancellationToken ct = default)
-    {
+    public async Task<RagAnswer> AskAsync(string question, CancellationToken ct = default) {
         var hits = await knowledgeBase.SearchAsync(question, options.TopK, ct);
         if (hits.Count == 0 || !IsRelevant(hits))
             return new RagAnswer(NotFound, hits, Grounded: false);

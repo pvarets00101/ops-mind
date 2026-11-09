@@ -4,11 +4,9 @@ using OpsMind.Core.Llm;
 
 namespace OpsMind.Tests;
 
-public class LlmRegistrationTests
-{
+public class LlmRegistrationTests {
     [Fact]
-    public void AddOpsMindLlm_RegistersChatAndEmbeddingClients()
-    {
+    public void AddOpsMindLlm_RegistersChatAndEmbeddingClients() {
         var services = new ServiceCollection();
         services.AddLogging();
 

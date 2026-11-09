@@ -1,8 +1,7 @@
 namespace OpsMind.DataGen;
 
 /// <summary>Значения для подстановки в шаблоны обращений.</summary>
-static class Slots
-{
+static class Slots {
     public static readonly string[] Greetings =
         ["", "", "Добрый день! ", "Здравствуйте. ", "Коллеги, привет! ", "Доброе утро. ", "Помогите, пожалуйста. "];
 

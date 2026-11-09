@@ -14,8 +14,7 @@ public sealed class OpsMindTools(
     IncidentDatabase incidents,
     TicketClient tickets,
     AttachmentStore attachments,
-    PendingActionStore pendingActions)
-{
+    PendingActionStore pendingActions) {
     public IList<AITool> All() =>
     [
         AIFunctionFactory.Create(SearchDocsAsync, "search_docs"),
@@ -29,8 +28,7 @@ public sealed class OpsMindTools(
                  "о правилах, сроках, лимитах, настройках. Возвращает фрагменты с идентификаторами [RB-xxx].")]
     async Task<string> SearchDocsAsync(
         [Description("Поисковый запрос на русском, своими словами: суть проблемы или вопроса")] string query,
-        CancellationToken ct)
-    {
+        CancellationToken ct) {
         var hits = await knowledgeBase.SearchAsync(query, 3, ct);
         if (hits.Count == 0 || hits[0].RerankScore is < 0.02f)
             return "В регламентах ничего не найдено по этому запросу.";
@@ -66,14 +64,10 @@ public sealed class OpsMindTools(
     [Description("Текущее состояние тикета во внешней ITSM-системе по номеру вида T-2026-00123: статус, приоритет, команда, комментарии.")]
     async Task<string> GetTicketAsync(
         [Description("Номер тикета, например T-2026-02967")] string ticketId,
-        CancellationToken ct)
-    {
-        try
-        {
+        CancellationToken ct) {
+        try {
             return await tickets.GetAsync(ticketId, ct) is { } t ? TicketClient.Format(t) : $"Тикет {ticketId} не найден.";
-        }
-        catch (HttpRequestException e)
-        {
+        } catch (HttpRequestException e) {
             return $"ITSM недоступна после повторных попыток: {e.Message}";
         }
     }
@@ -93,8 +87,7 @@ public sealed class OpsMindTools(
         [Description("Категория: access, email, vpn, network, workstation, printing, server, database, kubernetes, cicd, security, business_app")] string category,
         [Description("Приоритет P1–P4 по масштабу проблемы: P1 — остановлен сервис для многих, P3 — проблема у одного сотрудника, P4 — запрос")] string priority,
         [Description("Команда: ServiceDesk, Network, Infra, Database, DevOps, Security, Apps")] string team,
-        CancellationToken ct)
-    {
+        CancellationToken ct) {
         var action = await pendingActions.AddAsync(new NewTicket(subject, description, category, priority, team, "OpsMind Agent"), ct);
         return $"Заявка подготовлена и ожидает подтверждения пользователя (действие {action.Id}). " +
                "Сообщи пользователю, что заявку нужно подтвердить.";

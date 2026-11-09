@@ -7,10 +7,8 @@ namespace OpsMind.Core.Agent;
 /// с таймаутом (data/sql/003_agent_role.sql). Полагаться только на проверку текста нельзя:
 /// запрещённое можно спрятать, поэтому права в базе — обязательны.
 /// </summary>
-public static partial class SqlGuard
-{
-    public static SqlCheck Check(string sql, int maxRows)
-    {
+public static partial class SqlGuard {
+    public static SqlCheck Check(string sql, int maxRows) {
         var trimmed = sql.Trim().TrimEnd(';').Trim();
         if (trimmed.Length == 0)
             return SqlCheck.Fail("Пустой запрос.");
@@ -34,8 +32,7 @@ public static partial class SqlGuard
     private static partial Regex Forbidden();
 }
 
-public sealed record SqlCheck(bool IsValid, string Sql, string? Error)
-{
+public sealed record SqlCheck(bool IsValid, string Sql, string? Error) {
     public static SqlCheck Ok(string sql) => new(true, sql, null);
     public static SqlCheck Fail(string error) => new(false, "", error);
 }

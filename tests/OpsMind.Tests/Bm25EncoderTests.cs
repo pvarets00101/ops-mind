@@ -2,11 +2,9 @@ using OpsMind.Core.Rag;
 
 namespace OpsMind.Tests;
 
-public class Bm25EncoderTests
-{
+public class Bm25EncoderTests {
     [Fact]
-    public void Tokenize_KeepsCompoundTokensAndTheirParts()
-    {
+    public void Tokenize_KeepsCompoundTokensAndTheirParts() {
         var tokens = Bm25Encoder.Tokenize("Адрес 169.254.x.x и pg_stat_activity");
 
         Assert.Contains("169.254.x.x", tokens);
@@ -17,8 +15,7 @@ public class Bm25EncoderTests
     }
 
     [Fact]
-    public void Tokenize_StemsRussianWordForms_ToSameToken()
-    {
+    public void Tokenize_StemsRussianWordForms_ToSameToken() {
         var a = Bm25Encoder.Tokenize("блокировка");
         var b = Bm25Encoder.Tokenize("блокируется");
 
@@ -26,8 +23,7 @@ public class Bm25EncoderTests
     }
 
     [Fact]
-    public void Tokenize_DropsStopWords()
-    {
+    public void Tokenize_DropsStopWords() {
         var tokens = Bm25Encoder.Tokenize("Что делать, если не работает VPN");
 
         Assert.DoesNotContain("что", tokens);
@@ -36,8 +32,7 @@ public class Bm25EncoderTests
     }
 
     [Fact]
-    public void EncodeDocument_IndicesAreSortedAndUnique()
-    {
+    public void EncodeDocument_IndicesAreSortedAndUnique() {
         var (values, indices) = Bm25Encoder.EncodeDocument("VPN VPN VPN не подключается, ошибка -12");
 
         Assert.Equal(values.Length, indices.Length);
@@ -46,8 +41,7 @@ public class Bm25EncoderTests
     }
 
     [Fact]
-    public void EncodeDocument_RepeatedWordWeighsMoreButSaturates()
-    {
+    public void EncodeDocument_RepeatedWordWeighsMoreButSaturates() {
         var once = Bm25Encoder.EncodeDocument("vpn ошибка").Values.Max();
         var thrice = Bm25Encoder.EncodeDocument("vpn vpn vpn ошибка").Values.Max();
 

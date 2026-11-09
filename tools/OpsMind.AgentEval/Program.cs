@@ -38,17 +38,13 @@ var scenarios = File.ReadLines(Path.Combine(root, "data", "eval", "agent-scenari
     .ToList();
 
 var results = new List<Outcome>();
-foreach (var s in scenarios)
-{
+foreach (var s in scenarios) {
     Console.Write($"{s.Id} {s.Message} … ");
     var expected = s.SqlCheck is null ? null : await ScalarAsync(s.SqlCheck);
     AgentReply reply;
-    try
-    {
+    try {
         reply = await agent.ChatAsync(null, s.Message);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
         results.Add(new Outcome(s, false, false, null, [], $"ОШИБКА: {e.Message}", 0, 0));
         Console.WriteLine("ошибка");
         continue;
@@ -92,16 +88,14 @@ var report = new StringBuilder()
     .AppendLine()
     .AppendLine("| Сценарий | Тип | Инструменты | Ответ | Время | Вызовы и детали |")
     .AppendLine("|---|---|---|---|---|---|");
-foreach (var r in results)
-{
+foreach (var r in results) {
     report.AppendLine(string.Create(inv,
         $"| {r.Scenario.Id}: {r.Scenario.Message} | {r.Scenario.Kind} | {(r.ToolsOk ? "✓" : "✗")} | {(r.AnswerOk ? "✓" : "✗")} | {r.Seconds:N0} с | {Escape(r.Details)} |"));
 }
 report.AppendLine();
 
 var failed = results.Where(r => !r.ToolsOk || !r.AnswerOk).ToList();
-if (failed.Count > 0)
-{
+if (failed.Count > 0) {
     report.AppendLine("Ответы в неудачных сценариях:").AppendLine();
     foreach (var r in failed)
         report.AppendLine($"- **{r.Scenario.Id}**: {Escape(Short(r.Answer ?? "", 400))}");
@@ -113,8 +107,7 @@ Console.WriteLine(report);
 AppendReport(Path.Combine(root, "docs", "agent-eval.md"), report.ToString());
 return;
 
-async Task<string?> ScalarAsync(string sql)
-{
+async Task<string?> ScalarAsync(string sql) {
     await using var connection = new NpgsqlConnection(agentOptions.ReadOnlyConnectionString);
     await connection.OpenAsync();
     await using var command = new NpgsqlCommand(sql, connection);
@@ -122,8 +115,7 @@ async Task<string?> ScalarAsync(string sql)
 }
 
 // Число — ищем в ответе любое число в пределах 1% (модель может написать «2 инцидента» или «1 245,5 минут»).
-static bool AnswerMatches(string answer, string expected)
-{
+static bool AnswerMatches(string answer, string expected) {
     if (!double.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
         return answer.Contains(expected, StringComparison.OrdinalIgnoreCase);
 
@@ -135,16 +127,14 @@ static bool AnswerMatches(string answer, string expected)
 
 string? Arg(string name) => args.SkipWhile(a => a != name).Skip(1).FirstOrDefault();
 
-static string Short(string s, int max)
-{
+static string Short(string s, int max) {
     s = s.Replace("\r", " ").Replace("\n", " ");
     return s.Length <= max ? s : s[..max] + "…";
 }
 
 static string Escape(string s) => s.Replace("|", "\\|");
 
-static void AppendReport(string path, string report)
-{
+static void AppendReport(string path, string report) {
     if (!File.Exists(path))
         File.WriteAllText(path, "# Оценка агента\n\nИстория запусков tools/OpsMind.AgentEval, новые сверху.\n\n");
     var existing = File.ReadAllText(path);
@@ -155,8 +145,7 @@ static void AppendReport(string path, string report)
     Console.WriteLine($"Отчёт дописан в {path}");
 }
 
-static string FindRepoRoot()
-{
+static string FindRepoRoot() {
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "OpsMind.sln")))
         dir = dir.Parent;
@@ -169,7 +158,6 @@ record Scenario(
 
 record Outcome(
     Scenario Scenario, bool ToolsOk, bool AnswerOk, bool? PriorityOk, List<string> Called, string Details,
-    double Seconds, int Corrections)
-{
+    double Seconds, int Corrections) {
     public string? Answer { get; init; }
 }

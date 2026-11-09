@@ -2,8 +2,7 @@ using OpsMind.Core.Rag;
 
 namespace OpsMind.Tests;
 
-public class MarkdownChunkerTests
-{
+public class MarkdownChunkerTests {
     const string Doc = """
         ---
         id: RB-999
@@ -25,8 +24,7 @@ public class MarkdownChunkerTests
         """;
 
     [Fact]
-    public void Chunk_ReadsFrontMatter_AndSplitsBySections()
-    {
+    public void Chunk_ReadsFrontMatter_AndSplitsBySections() {
         var chunks = MarkdownChunker.Chunk(Doc, "RB-999.md");
 
         Assert.Equal(2, chunks.Count);
@@ -36,16 +34,14 @@ public class MarkdownChunkerTests
     }
 
     [Fact]
-    public void Chunk_PrefixesTextWithTitleAndSection()
-    {
+    public void Chunk_PrefixesTextWithTitleAndSection() {
         var chunks = MarkdownChunker.Chunk(Doc, "RB-999.md");
 
         Assert.StartsWith("Тестовый регламент. Симптомы\n", chunks[0].Text);
     }
 
     [Fact]
-    public void Chunk_IgnoresHeadingsInsideCodeBlocks()
-    {
+    public void Chunk_IgnoresHeadingsInsideCodeBlocks() {
         var solution = MarkdownChunker.Chunk(Doc, "RB-999.md")[1];
 
         Assert.Contains("## это комментарий в коде", solution.Text);
@@ -53,8 +49,7 @@ public class MarkdownChunkerTests
     }
 
     [Fact]
-    public void Chunk_SplitsLongSectionByParagraphs()
-    {
+    public void Chunk_SplitsLongSectionByParagraphs() {
         var longSection = string.Join("\n\n", Enumerable.Repeat(new string('а', 400), 5));
         var doc = $"---\nid: RB-1\ntitle: T\n---\n## Раздел\n{longSection}";
 

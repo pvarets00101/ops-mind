@@ -7,8 +7,7 @@ using System.Text.Json.Serialization;
 // повторных попыток (Polly) на стороне клиента. OpenAPI-описание: /openapi/v1.json
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
-builder.Services.ConfigureHttpJsonOptions(o =>
-{
+builder.Services.ConfigureHttpJsonOptions(o => {
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
     o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
@@ -22,16 +21,13 @@ var store = TicketStore.Load(FindFile(Path.Combine("data", "tickets", "tickets.j
 app.Logger.LogInformation("Загружено {Count} тикетов, доля сбоев {FailureRate:P0}", store.Count, failureRate);
 
 // Хаос: случайная задержка и ответ 503, как у нестабильной внешней системы.
-app.Use(async (ctx, next) =>
-{
-    if (!ctx.Request.Path.StartsWithSegments("/tickets"))
-    {
+app.Use(async (ctx, next) => {
+    if (!ctx.Request.Path.StartsWithSegments("/tickets")) {
         await next();
         return;
     }
     await Task.Delay(Random.Shared.Next(maxDelayMs));
-    if (Random.Shared.NextDouble() < failureRate)
-    {
+    if (Random.Shared.NextDouble() < failureRate) {
         ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         await ctx.Response.WriteAsync("ITSM temporarily unavailable");
         return;
@@ -45,8 +41,7 @@ app.MapGet("/tickets/{id}", (string id) =>
 app.MapGet("/tickets", (string? status, string? requester, int? limit) =>
     Results.Ok(store.Search(status, requester, Math.Clamp(limit ?? 20, 1, 100))));
 
-app.MapPost("/tickets", (CreateTicket request) =>
-{
+app.MapPost("/tickets", (CreateTicket request) => {
     if (string.IsNullOrWhiteSpace(request.Subject))
         return Results.BadRequest(new { error = "subject обязателен" });
     var ticket = store.Create(request);
@@ -58,10 +53,8 @@ app.MapPatch("/tickets/{id}", (string id, UpdateTicket request) =>
 
 app.Run();
 
-static string FindFile(string relative)
-{
-    for (var dir = new DirectoryInfo(Directory.GetCurrentDirectory()); dir is not null; dir = dir.Parent)
-    {
+static string FindFile(string relative) {
+    for (var dir = new DirectoryInfo(Directory.GetCurrentDirectory()); dir is not null; dir = dir.Parent) {
         var candidate = Path.Combine(dir.FullName, relative);
         if (File.Exists(candidate))
             return candidate;
@@ -78,19 +71,16 @@ record CreateTicket(string Subject, string Description, string? Category, string
 
 record UpdateTicket(string? Status, string? Priority, string? Comment);
 
-sealed class TicketStore
-{
+sealed class TicketStore {
     readonly ConcurrentDictionary<string, Ticket> _tickets = new();
     int _lastNumber;
 
     public int Count => _tickets.Count;
 
-    public static TicketStore Load(string path)
-    {
+    public static TicketStore Load(string path) {
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
         var store = new TicketStore();
-        foreach (var line in File.ReadLines(path).Where(l => l.Length > 0))
-        {
+        foreach (var line in File.ReadLines(path).Where(l => l.Length > 0)) {
             var t = JsonSerializer.Deserialize<Ticket>(line, options)! with { Comments = [] };
             store._tickets[t.Id] = t;
             store._lastNumber = Math.Max(store._lastNumber, int.Parse(t.Id[^5..]));
@@ -106,8 +96,7 @@ sealed class TicketStore
         .OrderByDescending(t => t.CreatedAt)
         .Take(limit);
 
-    public Ticket Create(CreateTicket r)
-    {
+    public Ticket Create(CreateTicket r) {
         var id = $"T-2026-{Interlocked.Increment(ref _lastNumber):D5}";
         var ticket = new Ticket(id, DateTimeOffset.Now, "agent", "—", r.Requester ?? "OpsMind Agent",
             r.Subject, r.Description, r.Category ?? "unknown", r.Priority ?? "P3", r.Team ?? "ServiceDesk",
@@ -116,13 +105,11 @@ sealed class TicketStore
         return ticket;
     }
 
-    public Ticket? Update(string id, UpdateTicket r)
-    {
+    public Ticket? Update(string id, UpdateTicket r) {
         if (Get(id) is not { } t)
             return null;
         var comments = r.Comment is null ? t.Comments : [.. t.Comments, $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm}: {r.Comment}"];
-        var updated = t with
-        {
+        var updated = t with {
             Status = r.Status ?? t.Status,
             Priority = r.Priority ?? t.Priority,
             ResolvedAt = r.Status == "resolved" ? DateTimeOffset.Now : t.ResolvedAt,

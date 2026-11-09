@@ -15,8 +15,7 @@ public sealed class KnowledgeBase(
     QdrantClient qdrant,
     IEmbeddingGenerator<string, Embedding<float>> embedder,
     Reranker reranker,
-    RagOptions options)
-{
+    RagOptions options) {
     const string Dense = "dense";
     const string Sparse = "sparse";
 
@@ -26,8 +25,7 @@ public sealed class KnowledgeBase(
     /// <summary>Константа RRF: сглаживает разницу между первыми местами (стандартное значение — 60).</summary>
     const int RrfK = 60;
 
-    public async Task EnsureCollectionAsync(bool recreate = false, CancellationToken ct = default)
-    {
+    public async Task EnsureCollectionAsync(bool recreate = false, CancellationToken ct = default) {
         var exists = await qdrant.CollectionExistsAsync(options.Collection, ct);
         if (exists && !recreate)
             return;
@@ -38,12 +36,10 @@ public sealed class KnowledgeBase(
         var probe = await embedder.GenerateVectorAsync("probe", cancellationToken: ct);
         await qdrant.CreateCollectionAsync(
             options.Collection,
-            vectorsConfig: new VectorParamsMap
-            {
+            vectorsConfig: new VectorParamsMap {
                 Map = { [Dense] = new VectorParams { Size = (ulong)probe.Length, Distance = Distance.Cosine } },
             },
-            sparseVectorsConfig: new SparseVectorConfig
-            {
+            sparseVectorsConfig: new SparseVectorConfig {
                 // Idf: Qdrant сам считает, насколько слово редкое в коллекции — недостающая часть формулы BM25.
                 Map = { [Sparse] = new SparseVectorParams { Modifier = Modifier.Idf } },
             },
@@ -52,8 +48,7 @@ public sealed class KnowledgeBase(
     }
 
     /// <summary>Переиндексирует документ целиком: старые фрагменты удаляются, новые записываются.</summary>
-    public async Task IndexDocumentAsync(IReadOnlyList<DocumentChunk> chunks, CancellationToken ct = default)
-    {
+    public async Task IndexDocumentAsync(IReadOnlyList<DocumentChunk> chunks, CancellationToken ct = default) {
         if (chunks.Count == 0)
             return;
 
@@ -61,19 +56,15 @@ public sealed class KnowledgeBase(
         await qdrant.DeleteAsync(options.Collection, MatchKeyword("doc_id", docId), cancellationToken: ct);
 
         var embeddings = await embedder.GenerateAsync(chunks.Select(c => c.Text), cancellationToken: ct);
-        var points = chunks.Zip(embeddings, (chunk, embedding) =>
-        {
+        var points = chunks.Zip(embeddings, (chunk, embedding) => {
             var (values, indices) = Bm25Encoder.EncodeDocument(chunk.Text);
-            return new PointStruct
-            {
+            return new PointStruct {
                 Id = StableId($"{chunk.DocId}:{chunk.Index}"),
-                Vectors = new Dictionary<string, Vector>
-                {
+                Vectors = new Dictionary<string, Vector> {
                     [Dense] = embedding.Vector.ToArray(),
                     [Sparse] = (values, indices),
                 },
-                Payload =
-                {
+                Payload = {
                     ["doc_id"] = chunk.DocId,
                     ["title"] = chunk.Title,
                     ["category"] = chunk.Category,
@@ -94,8 +85,7 @@ public sealed class KnowledgeBase(
 
     /// <summary>Поиск: при rerank = true берётся RerankCandidates кандидатов, и reranker выбирает из них topK.</summary>
     public async Task<IReadOnlyList<SearchHit>> SearchAsync(
-        string query, int topK, SearchMode mode, bool rerank, CancellationToken ct = default)
-    {
+        string query, int topK, SearchMode mode, bool rerank, CancellationToken ct = default) {
         if (!rerank)
             return await RetrieveAsync(query, topK, mode, ct);
 
@@ -103,10 +93,8 @@ public sealed class KnowledgeBase(
         return await reranker.RerankAsync(query, candidates, topK, ct);
     }
 
-    async Task<IReadOnlyList<SearchHit>> RetrieveAsync(string query, int topK, SearchMode mode, CancellationToken ct)
-    {
-        switch (mode)
-        {
+    async Task<IReadOnlyList<SearchHit>> RetrieveAsync(string query, int topK, SearchMode mode, CancellationToken ct) {
+        switch (mode) {
             case SearchMode.Dense:
                 return await DenseSearchAsync(query, topK, ct);
             case SearchMode.Sparse:
@@ -119,8 +107,7 @@ public sealed class KnowledgeBase(
         return ReciprocalRankFusion([(await denseTask, 1.0), (await sparseTask, options.SparseWeight)], topK);
     }
 
-    async Task<IReadOnlyList<SearchHit>> DenseSearchAsync(string query, int limit, CancellationToken ct)
-    {
+    async Task<IReadOnlyList<SearchHit>> DenseSearchAsync(string query, int limit, CancellationToken ct) {
         var vector = await embedder.GenerateVectorAsync(query, cancellationToken: ct);
         var points = await qdrant.QueryAsync(
             options.Collection, query: vector.ToArray(), usingVector: Dense,
@@ -128,8 +115,7 @@ public sealed class KnowledgeBase(
         return points.Select(p => ToHit(p, denseScore: p.Score)).ToList();
     }
 
-    async Task<IReadOnlyList<SearchHit>> SparseSearchAsync(string query, int limit, CancellationToken ct)
-    {
+    async Task<IReadOnlyList<SearchHit>> SparseSearchAsync(string query, int limit, CancellationToken ct) {
         var (values, indices) = Bm25Encoder.EncodeQuery(query);
         if (values.Length == 0)
             return [];
@@ -144,13 +130,10 @@ public sealed class KnowledgeBase(
     /// Reciprocal Rank Fusion: каждый фрагмент получает сумму weight / (k + место) по всем спискам.
     /// Оценки разных поисков несопоставимы (косинус 0..1 против BM25 0..∞), поэтому сливаем по местам, а не по оценкам.
     /// </summary>
-    static IReadOnlyList<SearchHit> ReciprocalRankFusion((IReadOnlyList<SearchHit> Hits, double Weight)[] lists, int topK)
-    {
+    static IReadOnlyList<SearchHit> ReciprocalRankFusion((IReadOnlyList<SearchHit> Hits, double Weight)[] lists, int topK) {
         var fused = new Dictionary<string, (SearchHit Hit, double Score, float? Dense)>();
-        foreach (var (list, weight) in lists)
-        {
-            for (var rank = 0; rank < list.Count; rank++)
-            {
+        foreach (var (list, weight) in lists) {
+            for (var rank = 0; rank < list.Count; rank++) {
                 var hit = list[rank];
                 var key = $"{hit.DocId}:{hit.Section}:{hit.Text.GetHashCode()}";
                 var current = fused.GetValueOrDefault(key, (hit, 0, null));

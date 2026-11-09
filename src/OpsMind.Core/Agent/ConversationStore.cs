@@ -14,8 +14,7 @@ public sealed record StoredMessage(long Id, string Role, string Text, ChatMessag
 /// Каждое сообщение лежит отдельной строкой: ChatMessage целиком в jsonb (с вызовами инструментов и их результатами)
 /// и отдельно роль и текст — чтобы смотреть историю SQL-запросом и показывать её в UI без разбора JSON.
 /// </summary>
-public sealed class ConversationStore(NpgsqlDataSource db)
-{
+public sealed class ConversationStore(NpgsqlDataSource db) {
     const int TitleLength = 80;
 
     readonly NpgsqlDataSource _db = db;
@@ -26,13 +25,11 @@ public sealed class ConversationStore(NpgsqlDataSource db)
     /// AllowOutOfOrderMetadataProperties: jsonb в Postgres хранит ключи в своём порядке (короткие раньше),
     /// и $type перестаёт быть первым — без этой опции System.Text.Json отказывается читать такой объект.
     /// </summary>
-    public static JsonSerializerOptions JsonOptions { get; } = new(AIJsonUtilities.DefaultOptions)
-    {
+    public static JsonSerializerOptions JsonOptions { get; } = new(AIJsonUtilities.DefaultOptions) {
         AllowOutOfOrderMetadataProperties = true,
     };
 
-    public async Task<IReadOnlyList<ChatMessage>> LoadAsync(string conversationId, CancellationToken ct = default)
-    {
+    public async Task<IReadOnlyList<ChatMessage>> LoadAsync(string conversationId, CancellationToken ct = default) {
         await using var command = _db.CreateCommand(
             "SELECT content FROM agent_messages WHERE conversation_id = $1 ORDER BY id");
         command.Parameters.AddWithValue(conversationId);
@@ -44,8 +41,7 @@ public sealed class ConversationStore(NpgsqlDataSource db)
     }
 
     /// <summary>Дописывает сообщения в конец диалога; диалог создаётся при первой записи. Всё в одной транзакции.</summary>
-    public async Task AppendAsync(string conversationId, IReadOnlyList<ChatMessage> messages, CancellationToken ct = default)
-    {
+    public async Task AppendAsync(string conversationId, IReadOnlyList<ChatMessage> messages, CancellationToken ct = default) {
         if (messages.Count == 0)
             return;
 
@@ -57,8 +53,7 @@ public sealed class ConversationStore(NpgsqlDataSource db)
             """
             INSERT INTO agent_conversations (id, title) VALUES ($1, $2)
             ON CONFLICT (id) DO UPDATE SET updated_at = now()
-            """, connection, transaction))
-        {
+            """, connection, transaction)) {
             upsert.Parameters.AddWithValue(conversationId);
             upsert.Parameters.AddWithValue(Truncate(title.ReplaceLineEndings(" "), TitleLength));
             await upsert.ExecuteNonQueryAsync(ct);
@@ -66,8 +61,7 @@ public sealed class ConversationStore(NpgsqlDataSource db)
 
         // Пакет: все INSERT уходят на сервер одним сетевым обменом.
         await using var batch = new NpgsqlBatch(connection, transaction);
-        foreach (var message in messages)
-        {
+        foreach (var message in messages) {
             var insert = new NpgsqlBatchCommand(
                 "INSERT INTO agent_messages (conversation_id, role, text, content) VALUES ($1, $2, $3, $4)");
             insert.Parameters.AddWithValue(conversationId);
@@ -80,8 +74,7 @@ public sealed class ConversationStore(NpgsqlDataSource db)
         await transaction.CommitAsync(ct);
     }
 
-    public async Task<IReadOnlyList<ConversationSummary>> ListAsync(int limit = 50, CancellationToken ct = default)
-    {
+    public async Task<IReadOnlyList<ConversationSummary>> ListAsync(int limit = 50, CancellationToken ct = default) {
         await using var command = _db.CreateCommand(
             """
             SELECT c.id, c.title, (SELECT count(*) FROM agent_messages m WHERE m.conversation_id = c.id), c.created_at, c.updated_at
@@ -92,8 +85,7 @@ public sealed class ConversationStore(NpgsqlDataSource db)
         command.Parameters.AddWithValue(limit);
         await using var reader = await command.ExecuteReaderAsync(ct);
         var list = new List<ConversationSummary>();
-        while (await reader.ReadAsync(ct))
-        {
+        while (await reader.ReadAsync(ct)) {
             list.Add(new ConversationSummary(
                 reader.GetString(0), reader.GetString(1), (int)reader.GetInt64(2),
                 reader.GetFieldValue<DateTimeOffset>(3), reader.GetFieldValue<DateTimeOffset>(4)));
@@ -101,8 +93,7 @@ public sealed class ConversationStore(NpgsqlDataSource db)
         return list;
     }
 
-    public async Task<IReadOnlyList<StoredMessage>?> GetMessagesAsync(string conversationId, CancellationToken ct = default)
-    {
+    public async Task<IReadOnlyList<StoredMessage>?> GetMessagesAsync(string conversationId, CancellationToken ct = default) {
         await using var command = _db.CreateCommand(
             """
             SELECT m.id, m.role, m.text, m.content, m.created_at
@@ -114,8 +105,7 @@ public sealed class ConversationStore(NpgsqlDataSource db)
         command.Parameters.AddWithValue(conversationId);
         await using var reader = await command.ExecuteReaderAsync(ct);
         List<StoredMessage>? messages = null;
-        while (await reader.ReadAsync(ct))
-        {
+        while (await reader.ReadAsync(ct)) {
             messages ??= [];
             if (reader.IsDBNull(0))
                 continue; // диалог есть, сообщений нет (LEFT JOIN)
@@ -126,8 +116,7 @@ public sealed class ConversationStore(NpgsqlDataSource db)
         return messages; // null — такого диалога нет
     }
 
-    public async Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default)
-    {
+    public async Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default) {
         await using var command = _db.CreateCommand("DELETE FROM agent_conversations WHERE id = $1");
         command.Parameters.AddWithValue(conversationId);
         return await command.ExecuteNonQueryAsync(ct) > 0;

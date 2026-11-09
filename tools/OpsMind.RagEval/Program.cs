@@ -51,8 +51,7 @@ var report = new StringBuilder()
     .AppendLine("|---|---|---|---|---|---|");
 
 var results = new Dictionary<Config, List<Result>>();
-foreach (var config in configs)
-{
+foreach (var config in configs) {
     var list = new List<Result>();
     var sw = Stopwatch.StartNew();
     foreach (var q in questions)
@@ -68,13 +67,11 @@ report.AppendLine();
 
 // Промахи: какие вопросы какая конфигурация «чинит» или «ломает».
 var missIds = results.Values.SelectMany(r => r).Where(r => r.Rank != 1).Select(r => r.Question.Id).Distinct().Order().ToList();
-if (missIds.Count > 0)
-{
+if (missIds.Count > 0) {
     report.AppendLine("Промахи (ранг правильного документа; — — не нашёлся в топ-10):").AppendLine()
         .AppendLine($"| Вопрос | Ожидался | {string.Join(" | ", configs.Select(c => c.Name))} |")
         .AppendLine($"|---|---|{string.Concat(configs.Select(_ => "---|"))}");
-    foreach (var id in missIds)
-    {
+    foreach (var id in missIds) {
         var q = questions.First(x => x.Id == id);
         var ranks = configs.Select(c => results[c].First(r => r.Question.Id == id).Rank is var r and > 0 ? r.ToString() : "—");
         report.AppendLine($"| {q.Id}: {q.Question} | {q.ExpectedRunbook} | {string.Join(" | ", ranks)} |");
@@ -91,8 +88,7 @@ var hybrid = results[configs[^1]];
 Calibrate("косинус лучшего фрагмента (dense)", options.MinScore,
     hybrid.Select(r => r.BestDense).ToList(),
     offTopicHits.Select(o => (o.Q, o.Hits.Max(h => h.DenseScore) ?? 0)).ToList());
-if (withRerank)
-{
+if (withRerank) {
     Calibrate("оценка reranker'а лучшего фрагмента", null,
         hybrid.Select(r => r.BestRerank).ToList(),
         offTopicHits.Select(o => (o.Q, o.Hits.Max(h => h.RerankScore) ?? 0)).ToList());
@@ -102,14 +98,12 @@ Console.WriteLine(report);
 AppendReport(Path.Combine(root, "docs", "rag-eval.md"), report.ToString());
 return;
 
-Result Evaluate(EvalQuestion q, IReadOnlyList<SearchHit> hits)
-{
+Result Evaluate(EvalQuestion q, IReadOnlyList<SearchHit> hits) {
     var docs = hits.Select(h => h.DocId).Distinct().ToList();
     return new Result(q, docs.IndexOf(q.ExpectedRunbook) + 1, hits.Max(h => h.DenseScore) ?? 0, hits.Max(h => h.RerankScore) ?? 0);
 }
 
-void Calibrate(string signal, float? current, List<float> inScores, List<(OffTopicQuestion Q, float Score)> outScores)
-{
+void Calibrate(string signal, float? current, List<float> inScores, List<(OffTopicQuestion Q, float Score)> outScores) {
     report.AppendLine($"### Порог отказа: {signal}").AppendLine()
         .AppendLine("| Набор | min | p10 | медиана | max |").AppendLine("|---|---|---|---|---|")
         .AppendLine(Stats("Вопросы из базы", inScores))
@@ -123,8 +117,7 @@ void Calibrate(string signal, float? current, List<float> inScores, List<(OffTop
         .ThenBy(x => x.Rejects) // лучше пропустить лишнее к LLM, чем отказать на реальный вопрос
         .First();
 
-    if (current is { } c)
-    {
+    if (current is { } c) {
         report.AppendLine(string.Create(inv,
             $"Текущий порог {c:F2}: отказов на вопросы из базы — {inScores.Count(s => s < c)}, " +
             $"пропущено вопросов вне базы — {outScores.Count(o => o.Score >= c)} из {outScores.Count}."));
@@ -138,8 +131,7 @@ void Calibrate(string signal, float? current, List<float> inScores, List<(OffTop
     report.AppendLine();
 }
 
-string Stats(string name, List<float> s)
-{
+string Stats(string name, List<float> s) {
     var sorted = s.Order().ToList();
     float P(double p) => sorted[(int)Math.Floor(p * (sorted.Count - 1))];
     return string.Create(inv, $"| {name} ({s.Count}) | {sorted[0]:F3} | {P(0.1):F3} | {P(0.5):F3} | {sorted[^1]:F3} |");
@@ -152,8 +144,7 @@ List<T> ReadJsonl<T>(string path) => File.ReadLines(path)
     .Select(l => JsonSerializer.Deserialize<T>(l, json)!)
     .ToList();
 
-static void AppendReport(string path, string report)
-{
+static void AppendReport(string path, string report) {
     if (!File.Exists(path))
         File.WriteAllText(path, "# Оценка RAG (retrieval)\n\nИстория запусков tools/OpsMind.RagEval, новые сверху.\n\n");
     var existing = File.ReadAllText(path);
@@ -164,8 +155,7 @@ static void AppendReport(string path, string report)
     Console.WriteLine($"Отчёт дописан в {path}");
 }
 
-static string FindRepoRoot()
-{
+static string FindRepoRoot() {
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "OpsMind.sln")))
         dir = dir.Parent;

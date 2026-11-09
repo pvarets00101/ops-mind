@@ -1,7 +1,6 @@
 namespace OpsMind.Core.Agent;
 
-public sealed class AgentOptions
-{
+public sealed class AgentOptions {
     public const string SectionName = "Agent";
 
     /// <summary>Строка подключения под read-only ролью opsmind_agent (data/sql/003_agent_role.sql).</summary>

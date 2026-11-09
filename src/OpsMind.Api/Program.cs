@@ -17,11 +17,9 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok", model = llmOptions.C
 app.MapGet("/api/search", async (string q, int? k, KnowledgeBase kb, CancellationToken ct) =>
     Results.Ok(await kb.SearchAsync(q, k ?? 5, ct)));
 
-app.MapPost("/api/ask", async (AskRequest request, RagAnswerer rag, CancellationToken ct) =>
-{
+app.MapPost("/api/ask", async (AskRequest request, RagAnswerer rag, CancellationToken ct) => {
     var result = await rag.AskAsync(request.Question, ct);
-    return Results.Ok(new
-    {
+    return Results.Ok(new {
         answer = result.Answer,
         grounded = result.Grounded,
         sources = result.Sources.Select(s => new { s.DocId, s.Title, s.Section, score = Math.Round(s.Score, 3) }),
@@ -38,8 +36,7 @@ app.MapGet("/api/agent/conversations", async (int? limit, ConversationStore stor
 
 app.MapGet("/api/agent/conversations/{id}", async (string id, ConversationStore store, CancellationToken ct) =>
     await store.GetMessagesAsync(id, ct) is { } messages
-        ? Results.Ok(messages.Select(m => new
-        {
+        ? Results.Ok(messages.Select(m => new {
             m.Id,
             m.Role,
             m.Text,
@@ -63,18 +60,15 @@ app.MapPost("/api/agent/actions/{id}/approve", async (string id, PendingActionSt
 app.MapPost("/api/agent/actions/{id}/reject", async (string id, PendingActionStore store, CancellationToken ct) =>
     await store.RejectAsync(id, ct) is { } action ? Results.Ok(action) : Results.NotFound());
 
-app.MapPost("/api/chat", async (ChatRequest request, IChatClient chat, CancellationToken ct) =>
-{
+app.MapPost("/api/chat", async (ChatRequest request, IChatClient chat, CancellationToken ct) => {
     var response = await chat.GetResponseAsync(request.Message, cancellationToken: ct);
     return Results.Ok(new ChatResponseDto(response.Text));
 });
 
 // Server-Sent Events вручную: TypedResults.ServerSentEvents появится после перехода на .NET 10.
-app.MapPost("/api/chat/stream", async (ChatRequest request, IChatClient chat, HttpResponse response, CancellationToken ct) =>
-{
+app.MapPost("/api/chat/stream", async (ChatRequest request, IChatClient chat, HttpResponse response, CancellationToken ct) => {
     response.ContentType = "text/event-stream";
-    await foreach (var update in chat.GetStreamingResponseAsync(request.Message, cancellationToken: ct))
-    {
+    await foreach (var update in chat.GetStreamingResponseAsync(request.Message, cancellationToken: ct)) {
         if (string.IsNullOrEmpty(update.Text))
             continue;
 
@@ -86,14 +80,10 @@ app.MapPost("/api/chat/stream", async (ChatRequest request, IChatClient chat, Ht
 app.Run();
 
 // 404 — действия нет или оно уже обработано; 502 — ITSM не ответила даже после повторов, действие снова ждёт подтверждения.
-static async Task<IResult> ApproveAsync(string id, PendingActionStore store, CancellationToken ct)
-{
-    try
-    {
+static async Task<IResult> ApproveAsync(string id, PendingActionStore store, CancellationToken ct) {
+    try {
         return await store.ApproveAsync(id, ct) is { } action ? Results.Ok(action) : Results.NotFound();
-    }
-    catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
-    {
+    } catch (Exception e) when (e is HttpRequestException or TaskCanceledException) {
         return Results.Problem(e.Message, statusCode: StatusCodes.Status502BadGateway, title: "ITSM недоступна");
     }
 }

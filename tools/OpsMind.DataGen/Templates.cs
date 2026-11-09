@@ -13,13 +13,11 @@ sealed record TicketTemplate(
     string[] Subjects,
     string[] Descriptions,
     string? Service = null,
-    string[]? Causes = null)
-{
+    string[]? Causes = null) {
     public bool IsMajor => Causes is not null;
 }
 
-static class Templates
-{
+static class Templates {
     public static readonly TicketTemplate[] All =
     [
         // ---------- access ----------

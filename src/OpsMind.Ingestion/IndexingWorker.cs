@@ -12,10 +12,8 @@ public sealed class IndexingWorker(
     AttachmentStore attachments,
     IConfiguration configuration,
     IHostApplicationLifetime lifetime,
-    ILogger<IndexingWorker> logger) : BackgroundService
-{
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
+    ILogger<IndexingWorker> logger) : BackgroundService {
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
         var sourceDir = ResolveDirectory(configuration["Ingestion:SourceDir"] ?? "data/runbooks");
         logger.LogInformation("Индексация {Dir}", sourceDir);
 
@@ -26,8 +24,7 @@ public sealed class IndexingWorker(
         var totalChunks = 0;
         var started = DateTime.UtcNow;
 
-        foreach (var file in files)
-        {
+        foreach (var file in files) {
             var markdown = await File.ReadAllTextAsync(file, stoppingToken);
             var chunks = MarkdownChunker.Chunk(markdown, Path.GetFileName(file));
             await knowledgeBase.IndexDocumentAsync(chunks, stoppingToken);
@@ -47,13 +44,11 @@ public sealed class IndexingWorker(
 
     // Относительный путь ищется вверх от текущей папки: dotnet run запускает процесс в папке проекта,
     // а data/ лежит в корне репозитория. В контейнере путь задаётся абсолютным.
-    static string ResolveDirectory(string path)
-    {
+    static string ResolveDirectory(string path) {
         if (Path.IsPathRooted(path))
             return path;
 
-        for (var dir = new DirectoryInfo(Directory.GetCurrentDirectory()); dir is not null; dir = dir.Parent)
-        {
+        for (var dir = new DirectoryInfo(Directory.GetCurrentDirectory()); dir is not null; dir = dir.Parent) {
             var candidate = Path.Combine(dir.FullName, path);
             if (Directory.Exists(candidate))
                 return candidate;

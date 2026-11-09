@@ -22,8 +22,7 @@ public sealed record DocumentChunk(
 public sealed record SearchHit(
     string DocId, string Title, string Section, string Text, float Score, float? DenseScore, float? RerankScore = null);
 
-public enum SearchMode
-{
+public enum SearchMode {
     /// <summary>Только векторный (семантический) поиск.</summary>
     Dense,
 

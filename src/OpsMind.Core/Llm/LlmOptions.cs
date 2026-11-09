@@ -4,8 +4,7 @@
 /// Настройки LLM-провайдера. Ollama, vLLM и TGI отдают OpenAI-совместимый API,
 /// поэтому для них достаточно поменять BaseUrl и имя модели.
 /// </summary>
-public sealed class LlmOptions
-{
+public sealed class LlmOptions {
     public const string SectionName = "Llm";
 
     public string BaseUrl { get; set; } = "http://localhost:11434/v1";

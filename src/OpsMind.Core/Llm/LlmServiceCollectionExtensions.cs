@@ -5,15 +5,13 @@ using OpenAI;
 
 namespace OpsMind.Core.Llm;
 
-public static class LlmServiceCollectionExtensions
-{
+public static class LlmServiceCollectionExtensions {
     /// <summary>
     /// Регистрирует IChatClient и IEmbeddingGenerator поверх OpenAI-совместимого endpoint.
     /// Остальной код зависит только от абстракций Microsoft.Extensions.AI,
     /// поэтому провайдер меняется конфигурацией.
     /// </summary>
-    public static IServiceCollection AddOpsMindLlm(this IServiceCollection services, LlmOptions options)
-    {
+    public static IServiceCollection AddOpsMindLlm(this IServiceCollection services, LlmOptions options) {
         services.AddSingleton(options);
 
         var client = new OpenAIClient(

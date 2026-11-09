@@ -5,8 +5,7 @@ using ModelContextProtocol.Protocol;
 // Запуск: dotnet run --project tools/OpsMind.McpCheck [-- http://localhost:5100/mcp]
 var endpoint = new Uri(args.FirstOrDefault() ?? "http://localhost:5100/mcp");
 
-await using var client = await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions
-{
+await using var client = await McpClient.CreateAsync(new HttpClientTransport(new HttpClientTransportOptions {
     Endpoint = endpoint,
     Name = "opsmind-check",
 }));
@@ -16,8 +15,7 @@ Console.WriteLine($"Инструкции сервера: {client.ServerInstructi
 
 Console.WriteLine("== tools ==");
 var tools = await client.ListToolsAsync();
-foreach (var tool in tools)
-{
+foreach (var tool in tools) {
     var a = tool.ProtocolTool.Annotations;
     Console.WriteLine($"- {tool.Name} [readOnly={a?.ReadOnlyHint}, destructive={a?.DestructiveHint}] {Short(tool.Description, 90)}");
 }
@@ -43,15 +41,13 @@ await Call("get_ticket", new() { ["ticketId"] = "T-2026-02967" });
 await Call("read_attachments", new() { ["ticketId"] = "T-2026-02967" });
 return;
 
-async Task Call(string name, Dictionary<string, object?> arguments)
-{
+async Task Call(string name, Dictionary<string, object?> arguments) {
     var result = await client.CallToolAsync(name, arguments);
     var text = string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
     Console.WriteLine($"- {name}({string.Join(", ", arguments.Values)}){(result.IsError == true ? " [ОШИБКА]" : "")}\n  → {Short(text, 220)}");
 }
 
-static string Short(string? s, int max)
-{
+static string Short(string? s, int max) {
     s = (s ?? "").Replace("\r", " ").Replace("\n", " / ");
     return s.Length <= max ? s : s[..max] + "…";
 }
