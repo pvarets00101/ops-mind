@@ -228,14 +228,15 @@ docs/                           — план, бенчмарки, заметки
 
 **Изучить:** чем headless Claude Code отличается от Messages API; формат событий `stream-json`; как работает structured output; как устроен tool calling «под капотом» (модель возвращает JSON с именем функции и аргументами — это можно эмулировать схемой); семейство моделей Haiku / Sonnet / Opus и когда какую брать.
 
-- [ ] `ClaudeCliChatClient : IChatClient` в `OpsMind.Core/Llm`: сообщения → промпт в stdin, `--system-prompt`, `--tools ""`, `--no-session-persistence`, разбор `stream-json` в `ChatResponseUpdate` (стриминг для `/api/chat/stream`)
+- [x] `ClaudeCliChatClient : IChatClient` (`src/OpsMind.Core/Llm/ClaudeCli/`): системный промпт файлом (`--system-prompt-file`, заменяет промпт Claude Code), вопрос в stdin, `--tools ""` + `--strict-mcp-config` + `--setting-sources ""`, рабочая папка `%TEMP%/opsmind-claude`; диалог с историей — стенограмма в XML-тегах (`ClaudePrompt`); стриминг через `--include-partial-messages` (первый кусок через ~2 с). Включается `Llm__Provider=ClaudeCli`. RAG (`/api/ask`) работает на haiku
+  Защита: если в событии `init` у модели оказались инструменты (потерялся `--tools ""`), запрос прерывается
 - [ ] `ChatOptions.ResponseFormat` (JSON-схема) → `--json-schema`; `ChatOptions.ModelId` → `--model`
 - [ ] Эмуляция tool calling: инструменты из `ChatOptions.Tools` описываются в промпте, ответ по схеме `{tool_calls:[…]} | {answer}` → `FunctionCallContent`. Тогда `FunctionInvokingChatClient` и `ChatClientAgent` работают с Claude без изменений
-- [ ] Учёт лимитов: `rate_limit_event` → лог и метрика; `MaxConcurrency = 1` (семафор); таймаут и понятная ошибка при исчерпании лимита
+- [ ] Учёт лимитов: `rate_limit_event` → лог (сделано), метрика; `MaxConcurrency = 1` (семафор, сделано); таймаут (сделано); понятная ошибка при исчерпании лимита
 - [ ] Запасной провайдер: при ошибке или исчерпании лимита — Ollama (декоратор `FallbackChatClient`)
-- [ ] Unit-тесты разбора `stream-json` на записанных фикстурах (без вызова CLI)
+- [x] Unit-тесты разбора `stream-json` на записанных строках и сборки промпта (`tests/OpsMind.Tests/ClaudeCliTests.cs`)
 - [ ] Перезапустить оценки на Claude (haiku и sonnet) и сравнить с qwen3:4b: RAG-ответы, агент (17 сценариев), классификатор (fewshot) → `docs/model-selection.md`: качество, латентность, расход лимита
-- [ ] Измерить накладные расходы CLI: время запуска процесса, лишние токены на вызов
+- [ ] Измерить накладные расходы CLI: время запуска процесса, лишние токены на вызов. Первые замеры: ~3 с на короткий ответ, из них ~1.3–2 с — сам API; ~650 входных токенов на минимальный вопрос
 
 **Проверь себя**
 - Почему у `claude -p` нет `temperature` и что это значит для воспроизводимости оценок?
