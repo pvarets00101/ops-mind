@@ -1,4 +1,4 @@
-﻿using System.ClientModel;
+using System.ClientModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.AI;
 using OpenAI;
+using OpsMind.Core.Llm.ClaudeCli;
 
 // Оценка классификатора тикетов: category / priority / team.
 // Режимы промпта:
@@ -13,8 +14,12 @@ using OpenAI;
 //   fewshot — + правила приоритетов RB-001, соответствие категорий командам и 12 примеров из train.
 // Наборы: test — data/finetune/test.jsonl (шаблонные формулировки, как в обучении), hard — data/finetune/test_hard.jsonl (написан вручную).
 // Запуск: dotnet run --project tools/OpsMind.ClassifierEval -- --model qwen3:4b-instruct --mode fewshot --set hard [--limit 150] [--base-url ...]
+// Провайдер: --provider ollama (по умолчанию, OpenAI-совместимый --base-url) | claude-cli (Claude по подписке, --model haiku|sonnet|opus).
+// --schema: строгая JSON-схема с перечнем допустимых значений вместо «любой JSON».
 
-var model = Arg("--model") ?? "qwen3:4b-instruct";
+var provider = Arg("--provider") ?? "ollama";
+var model = Arg("--model") ?? (provider == "claude-cli" ? "haiku" : "qwen3:4b-instruct");
+var useSchema = args.Contains("--schema");
 var mode = Arg("--mode") ?? "bare";
 var set = Arg("--set") ?? "hard";
 var limit = int.Parse(Arg("--limit") ?? "1000");
@@ -27,8 +32,12 @@ var train = ReadSet(Path.Combine(finetuneDir, "train.jsonl"));
 var items = ReadSet(Path.Combine(finetuneDir, set == "hard" ? "test_hard.jsonl" : "test.jsonl")).Take(limit).ToList();
 var systemPrompt = File.ReadLines(Path.Combine(finetuneDir, "train.jsonl")).Select(ParseMessages).First().System;
 
-var chat = new OpenAIClient(new ApiKeyCredential("local"), new OpenAIClientOptions { Endpoint = new Uri(baseUrl) })
-    .GetChatClient(model).AsIChatClient();
+IChatClient chat = provider switch {
+    "claude-cli" => new ClaudeCliChatClient(new ClaudeCliOptions { Model = model }),
+    "ollama" => new OpenAIClient(new ApiKeyCredential("local"), new OpenAIClientOptions { Endpoint = new Uri(baseUrl) })
+        .GetChatClient(model).AsIChatClient(),
+    _ => throw new ArgumentException($"Неизвестный провайдер {provider}: ollama | claude-cli"),
+};
 
 List<ChatMessage> prefix = [new(ChatRole.System, mode == "fewshot" ? FewShotSystem(systemPrompt) : systemPrompt)];
 if (mode == "fewshot") {
@@ -39,7 +48,11 @@ if (mode == "fewshot") {
     }
 }
 
-var options = new ChatOptions { Temperature = 0, ResponseFormat = ChatResponseFormat.Json, MaxOutputTokens = 100 };
+// Схема ограничивает ответ допустимыми значениями: модель физически не может вернуть «P5» или категорию «printer».
+// Без неё — «любой JSON-объект», и формат держится только на промпте.
+var responseFormat = useSchema ? ChatResponseFormat.ForJsonSchema(TicketSchema(), "ticket_classification") : ChatResponseFormat.Json;
+// Temperature и MaxOutputTokens Claude CLI игнорирует (у claude -p таких параметров нет).
+var options = new ChatOptions { Temperature = 0, ResponseFormat = responseFormat, MaxOutputTokens = 100 };
 var results = new List<Prediction>();
 var sw = Stopwatch.StartNew();
 foreach (var item in items) {
@@ -61,7 +74,7 @@ var macroF1 = priorities.Average(p => {
 });
 
 var report = new StringBuilder()
-    .AppendLine($"## {DateTime.Now:yyyy-MM-dd HH:mm} — {model}, {mode}, набор {set} ({results.Count})").AppendLine()
+    .AppendLine($"## {DateTime.Now:yyyy-MM-dd HH:mm} — {model} ({provider}), {mode}{(useSchema ? ", схема" : "")}, набор {set} ({results.Count})").AppendLine()
     .AppendLine("| Валидный JSON | category | priority | team | Все три | Macro-F1 (priority) | Время на тикет |")
     .AppendLine("|---|---|---|---|---|---|---|")
     .AppendLine(string.Create(inv,
@@ -115,6 +128,23 @@ static Prediction Parse(Item item, string raw, double seconds) {
     } catch (JsonException) {
         return new Prediction(item, false, null, null, null, raw, seconds);
     }
+}
+
+static JsonElement TicketSchema() {
+    string[] categories = ["access", "email", "vpn", "network", "workstation", "printing", "server", "database", "kubernetes", "cicd", "security", "business_app"];
+    string[] priorities = ["P1", "P2", "P3", "P4"];
+    string[] teams = ["ServiceDesk", "Network", "Infra", "Database", "DevOps", "Security", "Apps"];
+    var schema = new {
+        type = "object",
+        properties = new {
+            category = new { type = "string", @enum = categories },
+            priority = new { type = "string", @enum = priorities },
+            team = new { type = "string", @enum = teams },
+        },
+        required = new[] { "category", "priority", "team" },
+        additionalProperties = false,
+    };
+    return JsonSerializer.SerializeToElement(schema);
 }
 
 // Читает оба формата: обучающий (messages) и ручной (subject/description + метки).

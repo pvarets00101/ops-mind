@@ -230,12 +230,19 @@ docs/                           — план, бенчмарки, заметки
 
 - [x] `ClaudeCliChatClient : IChatClient` (`src/OpsMind.Core/Llm/ClaudeCli/`): системный промпт файлом (`--system-prompt-file`, заменяет промпт Claude Code), вопрос в stdin, `--tools ""` + `--strict-mcp-config` + `--setting-sources ""`, рабочая папка `%TEMP%/opsmind-claude`; диалог с историей — стенограмма в XML-тегах (`ClaudePrompt`); стриминг через `--include-partial-messages` (первый кусок через ~2 с). Включается `Llm__Provider=ClaudeCli`. RAG (`/api/ask`) работает на haiku
   Защита: если в событии `init` у модели оказались инструменты (потерялся `--tools ""`), запрос прерывается
-- [ ] `ChatOptions.ResponseFormat` (JSON-схема) → `--json-schema`; `ChatOptions.ModelId` → `--model`
+- [x] `ChatOptions.ResponseFormat` (JSON-схема) → `--json-schema`; `ChatOptions.ModelId` → `--model`.
+  Как это устроено в CLI: схема становится схемой аргументов служебного инструмента `StructuredOutput` (в `init` он виден в списке tools,
+  `num_turns` = 2), готовый JSON — в поле `structured_output` итогового события. Схема передаётся только строкой (путь к файлу CLI не принимает),
+  поэтому запускаем нативный `claude.exe` напрямую, а не `claude.cmd`: через cmd.exe ломаются кавычки и `< > & |` (`ClaudeExecutable.Resolve`).
+  ClassifierEval: `--provider claude-cli`, `--schema` (строгая схема с перечнем значений)
 - [ ] Эмуляция tool calling: инструменты из `ChatOptions.Tools` описываются в промпте, ответ по схеме `{tool_calls:[…]} | {answer}` → `FunctionCallContent`. Тогда `FunctionInvokingChatClient` и `ChatClientAgent` работают с Claude без изменений
 - [ ] Учёт лимитов: `rate_limit_event` → лог (сделано), метрика; `MaxConcurrency = 1` (семафор, сделано); таймаут (сделано); понятная ошибка при исчерпании лимита
 - [ ] Запасной провайдер: при ошибке или исчерпании лимита — Ollama (декоратор `FallbackChatClient`)
 - [x] Unit-тесты разбора `stream-json` на записанных строках и сборки промпта (`tests/OpsMind.Tests/ClaudeCliTests.cs`)
-- [ ] Перезапустить оценки на Claude (haiku и sonnet) и сравнить с qwen3:4b: RAG-ответы, агент (17 сценариев), классификатор (fewshot) → `docs/model-selection.md`: качество, латентность, расход лимита
+- [x] Классификатор на Claude (`docs/model-selection.md`): «все три поля» qwen3 55 % → Haiku 72 % = Sonnet 72 %; выбран Haiku.
+  Обе модели Claude одинаково ставят P2 вместо P3 на 9 тикетах — проверить разметку `test_hard.jsonl`
+- [ ] Перезапустить на Claude оценки RAG-ответов и агента (агент — после эмуляции вызова функций)
+- [x] Повтор запуска процесса: Claude Code обновляет себя сам, и `claude.exe` на несколько секунд недоступен (Win32Exception 216)
 - [ ] Измерить накладные расходы CLI: время запуска процесса, лишние токены на вызов. Первые замеры: ~3 с на короткий ответ, из них ~1.3–2 с — сам API; ~650 входных токенов на минимальный вопрос
 
 **Проверь себя**

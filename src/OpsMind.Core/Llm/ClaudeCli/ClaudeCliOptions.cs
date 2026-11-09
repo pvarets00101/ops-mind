@@ -5,8 +5,12 @@ namespace OpsMind.Core.Llm.ClaudeCli;
 /// отдавать подписку другим пользователям или вытаскивать из неё токен для прямых вызовов API нельзя.
 /// </summary>
 public sealed class ClaudeCliOptions {
-    /// <summary>На Windows `claude` — npm-шим claude.cmd: Process.Start без оболочки находит только его.</summary>
-    public string ExecutablePath { get; set; } = OperatingSystem.IsWindows() ? "claude.cmd" : "claude";
+    /// <summary>
+    /// Путь к CLI; пусто — найти автоматически (<see cref="ClaudeExecutable.Resolve"/>).
+    /// На Windows лучше нативный claude.exe, а не npm-шим claude.cmd: через cmd.exe ломаются аргументы
+    /// с кавычками и символами &lt; &gt; &amp; | — а JSON-схема для --json-schema состоит из них.
+    /// </summary>
+    public string? ExecutablePath { get; set; }
 
     /// <summary>Алиас (haiku, sonnet, opus) или полное имя модели.</summary>
     public string Model { get; set; } = "haiku";

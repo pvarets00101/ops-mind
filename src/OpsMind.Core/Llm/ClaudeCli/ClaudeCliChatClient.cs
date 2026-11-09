@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -20,13 +21,18 @@ public sealed class ClaudeCliChatClient : IChatClient {
     readonly ILogger _log;
     readonly SemaphoreSlim _gate;
     readonly string _workingDirectory;
+    readonly string _executable;
     int _warnedAboutTemperature;
+
+    /// <summary>Служебный инструмент, через который CLI выполняет --json-schema.</summary>
+    const string StructuredOutputTool = "StructuredOutput";
 
     public ClaudeCliChatClient(ClaudeCliOptions options, ILogger<ClaudeCliChatClient>? log = null) {
         _options = options;
         _log = log ?? NullLogger<ClaudeCliChatClient>.Instance;
         _gate = new SemaphoreSlim(Math.Max(1, options.MaxConcurrency));
         _workingDirectory = options.WorkingDirectory ?? Path.Combine(Path.GetTempPath(), "opsmind-claude");
+        _executable = ClaudeExecutable.Resolve(options.ExecutablePath);
         Metadata = new ChatClientMetadata("claude-cli", defaultModelId: options.Model);
     }
 
@@ -46,6 +52,7 @@ public sealed class ClaudeCliChatClient : IChatClient {
 
         var (system, prompt) = ClaudePrompt.Build(messages, options);
         var model = options?.ModelId ?? _options.Model;
+        var schema = JsonSchemaArgument(options);
         var responseId = Guid.NewGuid().ToString("N");
 
         await _gate.WaitAsync(cancellationToken);
@@ -55,7 +62,7 @@ public sealed class ClaudeCliChatClient : IChatClient {
         Process? process = null;
         try {
             await File.WriteAllTextAsync(systemFile, system, new UTF8Encoding(false), cancellationToken);
-            process = Start(model, systemFile);
+            process = await StartWithRetryAsync(model, systemFile, schema, cancellationToken);
             var stderr = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
             await process.StandardInput.WriteAsync(prompt);
@@ -73,12 +80,15 @@ public sealed class ClaudeCliChatClient : IChatClient {
                     case ClaudeStreamEvent.Init init:
                         // Защита: если аргумент --tools "" потерялся по дороге (cmd.exe, другая версия CLI),
                         // модель получила бы Bash/Read/Edit. Не продолжаем — finally убьёт процесс.
-                        if (init.Tools.Count > 0)
-                            throw new ClaudeCliException($"claude запущен с инструментами ({string.Join(", ", init.Tools)}), ожидался режим без них");
+                        // Единственное исключение — служебный StructuredOutput в режиме --json-schema.
+                        var unexpected = init.Tools.Where(t => schema is null || t != StructuredOutputTool).ToList();
+                        if (unexpected.Count > 0)
+                            throw new ClaudeCliException($"claude запущен с инструментами ({string.Join(", ", unexpected)}), ожидался режим без них");
                         actualModel = init.Model;
                         break;
 
-                    case ClaudeStreamEvent.TextDelta delta:
+                    // В JSON-режиме ответ — аргументы StructuredOutput, а не текст; случайную прозу не отдаём.
+                    case ClaudeStreamEvent.TextDelta delta when schema is null:
                         sawText = true;
                         yield return new ChatResponseUpdate(ChatRole.Assistant, delta.Text) {
                             ResponseId = responseId,
@@ -121,8 +131,11 @@ public sealed class ClaudeCliChatClient : IChatClient {
                     }),
                 ],
             };
-            if (!sawText && result.Text.Length > 0)
-                final.Contents.Insert(0, new TextContent(result.Text));
+            var text = schema is not null ? result.StructuredOutput ?? result.Text
+                : sawText ? null
+                : result.Text;
+            if (!string.IsNullOrEmpty(text))
+                final.Contents.Insert(0, new TextContent(text));
             yield return final;
         } finally {
             if (process is { HasExited: false }) {
@@ -139,8 +152,24 @@ public sealed class ClaudeCliChatClient : IChatClient {
         }
     }
 
-    Process Start(string model, string systemFile) {
-        var psi = new ProcessStartInfo(_options.ExecutablePath) {
+    /// <summary>
+    /// Claude Code обновляет себя сам, и на несколько секунд claude.exe бывает недоступен
+    /// («not a valid application», ERROR_EXE_MACHINE_TYPE_MISMATCH = 216) — это проверено на прогоне классификатора.
+    /// Поэтому неудачный запуск процесса повторяем, а не роняем запрос.
+    /// </summary>
+    async Task<Process> StartWithRetryAsync(string model, string systemFile, string? schema, CancellationToken ct) {
+        for (var attempt = 1; ; attempt++) {
+            try {
+                return Start(model, systemFile, schema);
+            } catch (System.ComponentModel.Win32Exception e) when (attempt < 3) {
+                _log.LogWarning("Не удалось запустить {Exe} ({Error}), попытка {Attempt} из 3", _executable, e.Message, attempt);
+                await Task.Delay(TimeSpan.FromSeconds(5 * attempt), ct);
+            }
+        }
+    }
+
+    Process Start(string model, string systemFile, string? schema) {
+        var psi = new ProcessStartInfo(_executable) {
             WorkingDirectory = _workingDirectory,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
@@ -162,8 +191,10 @@ public sealed class ClaudeCliChatClient : IChatClient {
         Add(psi, "--system-prompt-file", systemFile);          // заменяет системный промпт Claude Code целиком
         Add(psi, "--setting-sources", "");                     // без пользовательских хуков, плагинов, CLAUDE.md
         psi.ArgumentList.Add("--no-session-persistence");      // не копить на диске сессию от каждого вызова
+        if (schema is not null)
+            Add(psi, "--json-schema", schema);                 // только строкой: путь к файлу CLI не принимает
 
-        return Process.Start(psi) ?? throw new ClaudeCliException($"Не удалось запустить {_options.ExecutablePath}");
+        return Process.Start(psi) ?? throw new ClaudeCliException($"Не удалось запустить {_executable}");
     }
 
     async Task<string?> ReadLineAsync(Process process, CancellationToken timeout, CancellationToken caller) {
@@ -179,11 +210,18 @@ public sealed class ClaudeCliChatClient : IChatClient {
             throw new NotSupportedException(
                 "ClaudeCli пока не умеет вызывать инструменты: CLI не отдаёт tool_use наружу. " +
                 "Для агента используйте провайдер OpenAiCompatible (эмуляция вызова функций — следующий шаг этапа 6).");
-        if (options?.ResponseFormat is ChatResponseFormatJson)
-            throw new NotSupportedException("JSON-ответ через --json-schema ещё не подключён (шаг 3 этапа 6).");
         if (options?.Temperature is not null && Interlocked.Exchange(ref _warnedAboutTemperature, 1) == 0)
             _log.LogWarning("ClaudeCli игнорирует Temperature: у claude -p нет такого параметра");
     }
+
+    /// <summary>
+    /// ChatResponseFormat.Json без схемы → любая JSON-структура ({"type":"object"});
+    /// со схемой (ForJsonSchema или GetResponseAsync&lt;T&gt;) → она сама, одной строкой. Текстовый режим → null.
+    /// </summary>
+    public static string? JsonSchemaArgument(ChatOptions? options) =>
+        options?.ResponseFormat is ChatResponseFormatJson json
+            ? json.Schema is { } s ? JsonSerializer.Serialize(s) : """{"type":"object"}"""
+            : null;
 
     static void Add(ProcessStartInfo psi, string name, string value) {
         psi.ArgumentList.Add(name);

@@ -54,6 +54,32 @@ public class ClaudeCliTests {
         Assert.Equal("end_turn", result.StopReason);
     }
 
+    [Fact]
+    public void ParsesStructuredOutput() {
+        // Так выглядит итог запроса с --json-schema: JSON и строкой в result, и объектом в structured_output.
+        const string line =
+            """{"type":"result","is_error":false,"result":"{\"category\":\"printing\",\"priority\":\"P3\"}","structured_output":{"category":"printing","priority":"P3"},"usage":{"input_tokens":5,"output_tokens":20}}""";
+
+        var result = Assert.IsType<ClaudeStreamEvent.Result>(ClaudeStreamEvent.Parse(line));
+
+        Assert.Equal("""{"category":"printing","priority":"P3"}""", result.StructuredOutput);
+    }
+
+    [Fact]
+    public void JsonSchemaArgumentDependsOnResponseFormat() {
+        Assert.Null(ClaudeCliChatClient.JsonSchemaArgument(null));
+        Assert.Null(ClaudeCliChatClient.JsonSchemaArgument(new ChatOptions { ResponseFormat = ChatResponseFormat.Text }));
+        Assert.Equal("""{"type":"object"}""", ClaudeCliChatClient.JsonSchemaArgument(new ChatOptions { ResponseFormat = ChatResponseFormat.Json }));
+
+        using var schema = System.Text.Json.JsonDocument.Parse("""
+            { "type": "object", "properties": { "priority": { "enum": ["P1", "P2"] } } }
+            """);
+        var format = ChatResponseFormat.ForJsonSchema(schema.RootElement.Clone(), "ticket");
+        // Одной строкой, без переносов: это значение аргумента командной строки.
+        Assert.Equal("""{"type":"object","properties":{"priority":{"enum":["P1","P2"]}}}""",
+            ClaudeCliChatClient.JsonSchemaArgument(new ChatOptions { ResponseFormat = format }));
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("не JSON, а предупреждение CLI")]

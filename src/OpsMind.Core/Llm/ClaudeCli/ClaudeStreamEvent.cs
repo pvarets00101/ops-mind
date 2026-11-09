@@ -20,8 +20,13 @@ public abstract record ClaudeStreamEvent {
     /// Последнее событие: итоговый текст, ошибка, токены. CostUsd — сколько стоил бы запрос по ценам API;
     /// по подписке мы не платим, но это удобная мера «тяжести» запроса.
     /// </summary>
+    /// <param name="StructuredOutput">
+    /// JSON по схеме из --json-schema. CLI получает его вызовом служебного инструмента StructuredOutput:
+    /// схема ответа становится схемой аргументов функции — так structured output устроен и в API.
+    /// </param>
     public sealed record Result(
-        string Text, bool IsError, string? StopReason, long InputTokens, long OutputTokens, decimal? CostUsd, int DurationMs)
+        string Text, bool IsError, string? StopReason, long InputTokens, long OutputTokens, decimal? CostUsd, int DurationMs,
+        string? StructuredOutput = null)
         : ClaudeStreamEvent;
 
     /// <summary>Разбирает одну строку вывода. null — строка не JSON или событие нам не нужно.</summary>
@@ -65,7 +70,10 @@ public abstract record ClaudeStreamEvent {
                         InputTokens: Long(usage, "input_tokens") + Long(usage, "cache_creation_input_tokens") + Long(usage, "cache_read_input_tokens"),
                         OutputTokens: Long(usage, "output_tokens"),
                         CostUsd: e.TryGetProperty("total_cost_usd", out var cost) && cost.ValueKind == JsonValueKind.Number ? cost.GetDecimal() : null,
-                        DurationMs: e.TryGetProperty("duration_ms", out var d) && d.TryGetInt32(out var ms) ? ms : 0);
+                        DurationMs: e.TryGetProperty("duration_ms", out var d) && d.TryGetInt32(out var ms) ? ms : 0,
+                        StructuredOutput: e.TryGetProperty("structured_output", out var so) && so.ValueKind is JsonValueKind.Object or JsonValueKind.Array
+                            ? so.GetRawText()
+                            : null);
 
                 default:
                     return null;
