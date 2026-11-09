@@ -235,7 +235,11 @@ docs/                           — план, бенчмарки, заметки
   `num_turns` = 2), готовый JSON — в поле `structured_output` итогового события. Схема передаётся только строкой (путь к файлу CLI не принимает),
   поэтому запускаем нативный `claude.exe` напрямую, а не `claude.cmd`: через cmd.exe ломаются кавычки и `< > & |` (`ClaudeExecutable.Resolve`).
   ClassifierEval: `--provider claude-cli`, `--schema` (строгая схема с перечнем значений)
-- [ ] Эмуляция tool calling: инструменты из `ChatOptions.Tools` описываются в промпте, ответ по схеме `{tool_calls:[…]} | {answer}` → `FunctionCallContent`. Тогда `FunctionInvokingChatClient` и `ChatClientAgent` работают с Claude без изменений
+- [x] Эмуляция tool calling (`ClaudeToolEmulation`): инструменты описываются в системном промпте, ответ ограничен схемой
+  `{tool_calls: [anyOf по инструментам: name = const, arguments = схема функции]} | {answer}` → `FunctionCallContent`.
+  `FunctionInvokingChatClient` и `ChatClientAgent` работают с Claude без изменений; `ToolMode` None/RequireAny учитываются.
+  Наблюдения: Claude сам делает независимые вызовы параллельно (два SQL за ход) и проходит цепочку «тикет → вложения → регламент»,
+  которую qwen3 4B не доводил до конца
 - [ ] Учёт лимитов: `rate_limit_event` → лог (сделано), метрика; `MaxConcurrency = 1` (семафор, сделано); таймаут (сделано); понятная ошибка при исчерпании лимита
 - [ ] Запасной провайдер: при ошибке или исчерпании лимита — Ollama (декоратор `FallbackChatClient`)
 - [x] Unit-тесты разбора `stream-json` на записанных строках и сборки промпта (`tests/OpsMind.Tests/ClaudeCliTests.cs`)

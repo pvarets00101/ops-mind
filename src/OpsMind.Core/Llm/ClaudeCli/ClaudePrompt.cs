@@ -37,7 +37,7 @@ public static class ClaudePrompt {
         foreach (var message in dialog)
             AppendMessage(sb, message);
         sb.Append("</conversation>\n\n");
-        sb.Append("Выше — диалог. Ответь на последнее сообщение пользователя как assistant: только текст ответа, без тегов.");
+        sb.Append("Выше — диалог, включая вызовы инструментов и их результаты. Продолжи его как assistant: ответь на последнее сообщение пользователя, без XML-тегов.");
         return (system, sb.ToString());
     }
 

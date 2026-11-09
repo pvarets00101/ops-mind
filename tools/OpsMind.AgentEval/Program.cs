@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -14,9 +14,15 @@ using OpsMind.Core.Rag;
 //  - ответ: эталон из SQL (числа — с допуском 1%) или ключевые слова;
 //  - приоритет подготовленной заявки.
 // Нужны запущенные: docker-compose, OpsMind.TicketService.Mock (порт 5090), проиндексированная база.
-// Запуск: dotnet run --project tools/OpsMind.AgentEval [-- --label "описание" --only A03,A11]
+// Запуск: dotnet run --project tools/OpsMind.AgentEval [-- --label "описание" --only A03,A11 --provider claude-cli --model haiku]
 
 var label = Arg("--label") ?? "без описания";
+var llmOptions = new LlmOptions();
+if (Arg("--provider") == "claude-cli") {
+    llmOptions.Provider = LlmProvider.ClaudeCli;
+    llmOptions.ClaudeCli.Model = Arg("--model") ?? "haiku";
+}
+var modelName = llmOptions.Provider == LlmProvider.ClaudeCli ? $"claude {llmOptions.ClaudeCli.Model}" : llmOptions.ChatModel;
 var only = Arg("--only")?.Split(',').ToHashSet();
 var inv = CultureInfo.InvariantCulture;
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
@@ -24,7 +30,7 @@ var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.S
 var agentOptions = new AgentOptions();
 var services = new ServiceCollection()
     .AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
-    .AddOpsMindLlm(new LlmOptions())
+    .AddOpsMindLlm(llmOptions)
     .AddOpsMindRag(new RagOptions { RerankerUrl = "http://localhost:8081/" })
     .AddOpsMindAgent(agentOptions)
     .BuildServiceProvider();
@@ -78,7 +84,7 @@ double Share(Func<Outcome, bool> f) => results.Count(f) / (double)results.Count;
 var withPriority = results.Where(r => r.PriorityOk is not null).ToList();
 
 var report = new StringBuilder()
-    .AppendLine($"## {DateTime.Now:yyyy-MM-dd HH:mm} — {label}").AppendLine()
+    .AppendLine($"## {DateTime.Now:yyyy-MM-dd HH:mm} — {modelName}: {label}").AppendLine()
     .AppendLine(string.Create(inv, $"Сценариев: {results.Count}. Модель: {new LlmOptions().ChatModel}.")).AppendLine()
     .AppendLine("| Выбор инструментов | Ответ верный | Оба верны | Приоритет заявки | Среднее время | Исправлений после проверки |")
     .AppendLine("|---|---|---|---|---|---|")

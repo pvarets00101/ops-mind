@@ -48,11 +48,15 @@ public sealed class ClaudeCliChatClient : IChatClient {
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages, ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-        ThrowIfUnsupported(options);
+        WarnAboutIgnoredOptions(options);
 
         var (system, prompt) = ClaudePrompt.Build(messages, options);
         var model = options?.ModelId ?? _options.Model;
-        var schema = JsonSchemaArgument(options);
+        // Режим инструментов: описания функций — в системный промпт, ответ — по схеме «вызовы или ответ».
+        var tools = ClaudeToolEmulation.ActiveTools(options);
+        if (tools.Count > 0)
+            system += "\n\n" + ClaudeToolEmulation.Instructions(tools);
+        var schema = tools.Count > 0 ? ClaudeToolEmulation.Schema(tools, options?.ToolMode) : JsonSchemaArgument(options);
         var responseId = Guid.NewGuid().ToString("N");
 
         await _gate.WaitAsync(cancellationToken);
@@ -118,11 +122,16 @@ public sealed class ClaudeCliChatClient : IChatClient {
                 LastRateLimit?.FiveHour);
 
             // Итоговое обновление: остаток текста (если частичных сообщений не было), причина остановки и токены.
+            var content = tools.Count > 0
+                ? ClaudeToolEmulation.ParseResponse(result.StructuredOutput ?? result.Text)
+                : null;
             var final = new ChatResponseUpdate {
                 Role = ChatRole.Assistant,
                 ResponseId = responseId,
                 ModelId = actualModel ?? model,
-                FinishReason = result.StopReason == "max_tokens" ? ChatFinishReason.Length : ChatFinishReason.Stop,
+                FinishReason = content?.Any(c => c is FunctionCallContent) == true ? ChatFinishReason.ToolCalls
+                    : result.StopReason == "max_tokens" ? ChatFinishReason.Length
+                    : ChatFinishReason.Stop,
                 Contents = [
                     new UsageContent(new UsageDetails {
                         InputTokenCount = result.InputTokens,
@@ -131,11 +140,16 @@ public sealed class ClaudeCliChatClient : IChatClient {
                     }),
                 ],
             };
-            var text = schema is not null ? result.StructuredOutput ?? result.Text
-                : sawText ? null
-                : result.Text;
-            if (!string.IsNullOrEmpty(text))
-                final.Contents.Insert(0, new TextContent(text));
+            if (content is not null) {
+                for (var i = 0; i < content.Count; i++)
+                    final.Contents.Insert(i, content[i]);
+            } else {
+                var text = schema is not null ? result.StructuredOutput ?? result.Text
+                    : sawText ? null
+                    : result.Text;
+                if (!string.IsNullOrEmpty(text))
+                    final.Contents.Insert(0, new TextContent(text));
+            }
             yield return final;
         } finally {
             if (process is { HasExited: false }) {
@@ -205,11 +219,7 @@ public sealed class ClaudeCliChatClient : IChatClient {
         }
     }
 
-    void ThrowIfUnsupported(ChatOptions? options) {
-        if (options?.Tools is { Count: > 0 })
-            throw new NotSupportedException(
-                "ClaudeCli пока не умеет вызывать инструменты: CLI не отдаёт tool_use наружу. " +
-                "Для агента используйте провайдер OpenAiCompatible (эмуляция вызова функций — следующий шаг этапа 6).");
+    void WarnAboutIgnoredOptions(ChatOptions? options) {
         if (options?.Temperature is not null && Interlocked.Exchange(ref _warnedAboutTemperature, 1) == 0)
             _log.LogWarning("ClaudeCli игнорирует Temperature: у claude -p нет такого параметра");
     }

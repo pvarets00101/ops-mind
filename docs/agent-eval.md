@@ -2,6 +2,62 @@
 
 История запусков tools/OpsMind.AgentEval, новые сверху.
 
+## 2026-11-09 18:12 — claude sonnet: эмуляция вызова функций через --json-schema
+
+Сценариев: 17. Модель: qwen3:4b-instruct.
+
+| Выбор инструментов | Ответ верный | Оба верны | Приоритет заявки | Среднее время | Исправлений после проверки |
+|---|---|---|---|---|---|
+| 100 % | 100 % | 100 % | 2/2 | 12 с | 1 |
+
+| Сценарий | Тип | Инструменты | Ответ | Время | Вызовы и детали |
+|---|---|---|---|---|---|
+| A01: Как войти, если я потерял телефон с аутентификатором и резервных кодов нет? | docs | ✓ | ✓ | 14 с | search_docs({"query":"потерян телефон с аутентификатором MFA, нет резервных кодов, сброс двухфакторной аутентификации"}) |
+| A02: Можно ли выкатывать релиз в продуктив в пятницу? | docs | ✓ | ✓ | 14 с | search_docs({"query":"можно ли выкатывать релиз в продуктив в пятницу, правила и окна релизов"}) |
+| A03: Сколько P1-инцидентов было в августе 2026? | sql | ✓ | ✓ | 7 с | query_history({"sql":"SELECT count(*) AS cnt FROM incidents WHERE priority='P1' AND started_at >= '2026-08-01' AND started_at < '2026-09-01'"}); эталон: 2 |
+| A04: Какая команда получила больше всего тикетов за год? | sql | ✓ | ✓ | 6 с | query_history({"sql":"SELECT team, COUNT(*) AS cnt FROM tickets GROUP BY team ORDER BY cnt DESC"}); эталон: ServiceDesk |
+| A05: Сколько тикетов по VPN нарушили SLA? | sql | ✓ | ✓ | 6 с | query_history({"sql":"SELECT count(*) FILTER (WHERE sla_breached) AS breached, count(*) AS total FROM tickets WHERE category='vpn'"}); эталон: 22 |
+| A06: Какой отдел чаще всего обращался по проблемам с печатью? | sql | ✓ | ✓ | 7 с | query_history({"sql":"SELECT department, COUNT(*) AS cnt FROM tickets WHERE category = 'printing' GROUP BY department ORDER BY cnt DESC LIMIT 10"}); эталон: Отдел кадров |
+| A07: Какие были корневые причины крупных инцидентов с VPN? | sql | ✓ | ✓ | 14 с | query_history({"sql":"SELECT id, title, service, priority, started_at, root_cause, resolution, affected_users FROM incidents WHERE category='vpn' OR service ILIKE '%vpn%' OR …) |
+| A08: Сколько в среднем минут решались тикеты с приоритетом P2? | sql | ✓ | ✓ | 7 с | query_history({"sql":"SELECT ROUND(AVG(resolution_minutes),1) AS avg_min, COUNT(resolution_minutes) AS n FROM tickets WHERE priority='P2' AND resolution_minutes IS NOT NULL"}); эталон: 284 |
+| A09: Какой статус у тикета T-2026-02994? | ticket | ✓ | ✓ | 7 с | get_ticket({"ticketId":"T-2026-02994"}) |
+| A10: Кто автор тикета T-2026-00002 и о чём он? | ticket | ✓ | ✓ | 9 с | get_ticket({"ticketId":"T-2026-00002"}); query_history({"sql":"SELECT id, requester, department, subject, description FROM tickets WHERE id = 'T-2026-00002'"}) |
+| A11: Почему падает под из тикета T-2026-02535? Посмотри вложения. | attachments | ✓ | ✓ | 24 с | read_attachments({"ticketId":"T-2026-02535"}); get_ticket({"ticketId":"T-2026-02535"}); search_docs({"query":"под в CrashLoopBackOff OOMKilled нехватка памяти, лимиты памяти, что делать"}) |
+| A12: Что за ошибка в тикете T-2026-02994? Посмотри вложения и подскажи решение. | attachments | ✓ | ✓ | 18 с | get_ticket({"ticketId":"T-2026-02994"}); read_attachments({"ticketId":"T-2026-02994"}); search_docs({"query":"1С не обнаружена лицензия, все лицензии заняты неактивными сеансами"}) |
+| A13: Заведи заявку: у всей бухгалтерии не работает 1С, никто не может войти | create | ✓ | ✓ | 8 с | create_ticket({"subject":"Не работает 1С у всей бухгалтерии — никто не может войти","description":"У всех сотрудников отдела бухгалтерии не работает 1С, вход в систему невозм…); приоритет P2 (ожидался P2) |
+| A14: Создай заявку: у меня сломалась мышка, нужна новая | create | ✓ | ✓ | 7 с | create_ticket({"subject":"Сломалась мышь, требуется замена","description":"У сотрудника вышла из строя компьютерная мышь. Просьба выдать новую мышь взамен неисправной.","cate…); приоритет P4 (ожидался P3\|P4) |
+| A15: Привет! Что ты умеешь? | chat | ✓ | ✓ | 4 с |  |
+| A16: Когда в компании выплачивают зарплату? | offtopic | ✓ | ✓ | 12 с | search_docs({"query":"Когда выплачивают зарплату в компании"}) |
+| A17: Сколько тикетов по VPN было в сентябре 2026 и что делать при ошибке FortiClient -12? | multi | ✓ | ✓ | 31 с | query_history({"sql":"SELECT count(*) FROM tickets WHERE category='vpn' AND created_at >= '2026-09-01' AND created_at < '2026-10-01'"}); search_docs({"query":"ошибка FortiClient -12 при подключении VPN"}); search_docs({"query":"сброс пароля и разблокировка заблокированной доменной учётной записи"}); search_docs({"query":"ошибка FortiClient -12 неверный пароль учётная запись заблокирована"}); эталон: 26 |
+
+## 2026-11-09 18:09 — claude haiku: эмуляция вызова функций через --json-schema
+
+Сценариев: 17. Модель: qwen3:4b-instruct.
+
+| Выбор инструментов | Ответ верный | Оба верны | Приоритет заявки | Среднее время | Исправлений после проверки |
+|---|---|---|---|---|---|
+| 100 % | 100 % | 100 % | 2/2 | 15 с | 3 |
+
+| Сценарий | Тип | Инструменты | Ответ | Время | Вызовы и детали |
+|---|---|---|---|---|---|
+| A01: Как войти, если я потерял телефон с аутентификатором и резервных кодов нет? | docs | ✓ | ✓ | 28 с | search_docs({"query":"потерял телефон с аутентификатором, нет резервных кодов, восстановление доступа MFA"}); search_docs({"query":"утеря телефона с корпоративными данными процедура"}) |
+| A02: Можно ли выкатывать релиз в продуктив в пятницу? | docs | ✓ | ✓ | 16 с | search_docs({"query":"выкатка релиза в продуктив в пятницу запрет окна деплоя"}) |
+| A03: Сколько P1-инцидентов было в августе 2026? | sql | ✓ | ✓ | 10 с | query_history({"sql":"SELECT COUNT(*) AS p1_incidents_aug_2026 FROM incidents WHERE priority = 'P1' AND started_at >= '2026-08-01' AND started_at < '2026-09-01'"}); эталон: 2 |
+| A04: Какая команда получила больше всего тикетов за год? | sql | ✓ | ✓ | 9 с | query_history({"sql":"SELECT team, COUNT(*) AS tickets FROM tickets WHERE created_at >= '2026-01-01' AND created_at < '2027-01-01' GROUP BY team ORDER BY tickets DESC;"}); эталон: ServiceDesk |
+| A05: Сколько тикетов по VPN нарушили SLA? | sql | ✓ | ✓ | 7 с | query_history({"sql":"SELECT COUNT(*) AS total_vpn, COUNT(*) FILTER (WHERE sla_breached) AS sla_breached_count FROM tickets WHERE category = 'vpn'"}); эталон: 22 |
+| A06: Какой отдел чаще всего обращался по проблемам с печатью? | sql | ✓ | ✓ | 9 с | query_history({"sql":"SELECT department, COUNT(*) AS cnt FROM tickets WHERE category = 'printing' GROUP BY department ORDER BY cnt DESC"}); эталон: Отдел кадров |
+| A07: Какие были корневые причины крупных инцидентов с VPN? | sql | ✓ | ✓ | 11 с | query_history({"sql":"SELECT id, title, service, priority, started_at, resolved_at, root_cause, resolution, affected_users FROM incidents WHERE category ILIKE 'vpn' OR servic…) |
+| A08: Сколько в среднем минут решались тикеты с приоритетом P2? | sql | ✓ | ✓ | 9 с | query_history({"sql":"SELECT ROUND(AVG(resolution_minutes), 1) AS avg_minutes, COUNT(*) AS cnt FROM tickets WHERE priority = 'P2' AND resolution_minutes IS NOT NULL"}); эталон: 284 |
+| A09: Какой статус у тикета T-2026-02994? | ticket | ✓ | ✓ | 10 с | get_ticket({"ticketId":"T-2026-02994"}) |
+| A10: Кто автор тикета T-2026-00002 и о чём он? | ticket | ✓ | ✓ | 9 с | get_ticket({"ticketId":"T-2026-00002"}) |
+| A11: Почему падает под из тикета T-2026-02535? Посмотри вложения. | attachments | ✓ | ✓ | 40 с | get_ticket({"ticketId":"T-2026-02535"}); read_attachments({"ticketId":"T-2026-02535"}); search_docs({"query":"OOMKilled CrashLoopBackOff под Kubernetes лимит памяти прогрев кэша CACHE_WARMUP_ON_START"}); search_docs({"query":"откат релиза helm rollback Kubernetes CrashLoopBackOff OOMKilled"}) |
+| A12: Что за ошибка в тикете T-2026-02994? Посмотри вложения и подскажи решение. | attachments | ✓ | ✓ | 22 с | get_ticket({"ticketId":"T-2026-02994"}); read_attachments({"ticketId":"T-2026-02994"}); search_docs({"query":"1С не обнаружена лицензия, лимит лицензий исчерпан, сеансы без активности, отключение неактивных сеансов RDS"}) |
+| A13: Заведи заявку: у всей бухгалтерии не работает 1С, никто не может войти | create | ✓ | ✓ | 11 с | create_ticket({"subject":"1С: не работает вход у всего отдела бухгалтерии","description":"У всех сотрудников бухгалтерии не работает 1С — никто не может войти в систему. Затр…); приоритет P2 (ожидался P2) |
+| A14: Создай заявку: у меня сломалась мышка, нужна новая | create | ✓ | ✓ | 10 с | create_ticket({"subject":"Сломалась компьютерная мышь, нужна замена","description":"У сотрудника сломалась компьютерная мышь. Просьба выдать новую мышь взамен неисправной. За…); приоритет P3 (ожидался P3\|P4) |
+| A15: Привет! Что ты умеешь? | chat | ✓ | ✓ | 5 с |  |
+| A16: Когда в компании выплачивают зарплату? | offtopic | ✓ | ✓ | 21 с | search_docs({"query":"когда выплачивается зарплата, сроки выплаты заработной платы"}); search_docs({"query":"зарплата расчет дата выплаты аванс"}) |
+| A17: Сколько тикетов по VPN было в сентябре 2026 и что делать при ошибке FortiClient -12? | multi | ✓ | ✓ | 29 с | query_history({"sql":"SELECT COUNT(*) AS vpn_tickets_sep_2026 FROM tickets WHERE category = 'vpn' AND created_at >= '2026-09-01' AND created_at < '2026-10-01'"}); search_docs({"query":"FortiClient ошибка -12 VPN что делать"}); search_docs({"query":"RB-010 сброс пароля учётной записи доменная учётка блокировка VPN"}); search_docs({"query":"RB-011 разблокировка учётной записи VPN SSLVPN configuration wrong"}); эталон: 26 |
+
 ## 2026-11-09 17:03 — история диалогов и действия в Postgres
 
 Сценариев: 17. Модель: qwen3:4b-instruct.

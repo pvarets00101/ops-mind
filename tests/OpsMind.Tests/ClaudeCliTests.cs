@@ -124,10 +124,86 @@ public class ClaudeCliTests {
     }
 
     [Fact]
-    public async Task ToolsAreRejectedUntilEmulationExists() {
-        using var client = new ClaudeCliChatClient(new ClaudeCliOptions { ExecutablePath = "не-запускается" });
-        var options = new ChatOptions { Tools = [AIFunctionFactory.Create(() => "ok", "noop")] };
+    public void ToolSchemaFixesNamesAndArgumentSchemas() {
+        var search = AIFunctionFactory.Create((string query) => "", "search_docs", "Поиск по регламентам");
+        var ticket = AIFunctionFactory.Create((string ticketId) => "", "get_ticket");
 
-        await Assert.ThrowsAsync<NotSupportedException>(() => client.GetResponseAsync("вопрос", options));
+        using var schema = System.Text.Json.JsonDocument.Parse(ClaudeToolEmulation.Schema([search, ticket], null));
+
+        var variants = schema.RootElement.GetProperty("properties").GetProperty("tool_calls").GetProperty("items").GetProperty("anyOf");
+        Assert.Equal(2, variants.GetArrayLength());
+        Assert.Equal("search_docs", variants[0].GetProperty("properties").GetProperty("name").GetProperty("const").GetString());
+        // Схема аргументов — та, что AIFunctionFactory построил по параметрам метода.
+        Assert.True(variants[0].GetProperty("properties").GetProperty("arguments").GetProperty("properties").TryGetProperty("query", out _));
+        Assert.False(schema.RootElement.GetProperty("properties").GetProperty("tool_calls").TryGetProperty("minItems", out _));
+    }
+
+    [Fact]
+    public void RequireAnyMeansAtLeastOneCall() {
+        var tool = AIFunctionFactory.Create(() => "", "noop");
+        using var schema = System.Text.Json.JsonDocument.Parse(ClaudeToolEmulation.Schema([tool], ChatToolMode.RequireAny));
+        Assert.Equal(1, schema.RootElement.GetProperty("properties").GetProperty("tool_calls").GetProperty("minItems").GetInt32());
+    }
+
+    [Fact]
+    public void ToolModeNoneDisablesEmulation() {
+        var options = new ChatOptions { Tools = [AIFunctionFactory.Create(() => "", "noop")], ToolMode = ChatToolMode.None };
+        Assert.Empty(ClaudeToolEmulation.ActiveTools(options));
+    }
+
+    [Fact]
+    public void ParsesToolCalls() {
+        var contents = ClaudeToolEmulation.ParseResponse(
+            """{"tool_calls":[{"name":"get_ticket","arguments":{"ticketId":"T-2026-02994"}},{"name":"read_attachments","arguments":{"ticketId":"T-2026-02994"}}]}""");
+
+        Assert.Equal(2, contents.Count);
+        var first = Assert.IsType<FunctionCallContent>(contents[0]);
+        Assert.Equal("get_ticket", first.Name);
+        Assert.Equal("T-2026-02994", first.Arguments!["ticketId"]!.ToString());
+        // У каждого вызова свой id — по нему FunctionInvokingChatClient сопоставит результат.
+        Assert.NotEqual(first.CallId, ((FunctionCallContent)contents[1]).CallId);
+    }
+
+    [Theory]
+    [InlineData("""{"answer":"Готово. [RB-030]"}""", "Готово. [RB-030]")]
+    [InlineData("""{"tool_calls":[],"answer":"Готово."}""", "Готово.")]
+    public void ParsesAnswer(string json, string expected) {
+        var text = Assert.IsType<TextContent>(Assert.Single(ClaudeToolEmulation.ParseResponse(json)));
+        Assert.Equal(expected, text.Text);
+    }
+
+    /// <summary>
+    /// Полный цикл без CLI: FunctionInvokingChatClient поверх «модели», которая сначала просит инструмент, потом отвечает.
+    /// Проверяет, что вызовы из эмуляции понимает стандартная обвязка Microsoft.Extensions.AI.
+    /// </summary>
+    [Fact]
+    public async Task EmulatedCallsDriveStandardFunctionInvocation() {
+        var calls = 0;
+        var tool = AIFunctionFactory.Create((string ticketId) => { calls++; return $"{ticketId}: статус in_progress"; }, "get_ticket");
+        var replies = new Queue<string>([
+            """{"tool_calls":[{"name":"get_ticket","arguments":{"ticketId":"T-1"}}]}""",
+            """{"answer":"Тикет T-1 в работе."}""",
+        ]);
+        var fake = new TestChatClient((_, _) => new ChatResponse(new ChatMessage(ChatRole.Assistant, ClaudeToolEmulation.ParseResponse(replies.Dequeue()))));
+        using var client = new ChatClientBuilder(fake).UseFunctionInvocation().Build();
+
+        var response = await client.GetResponseAsync("Что с T-1?", new ChatOptions { Tools = [tool] });
+
+        Assert.Equal(1, calls);
+        Assert.Equal("Тикет T-1 в работе.", response.Text);
+    }
+
+    sealed class TestChatClient(Func<IEnumerable<ChatMessage>, ChatOptions?, ChatResponse> respond) : IChatClient {
+        public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken ct = default) =>
+            Task.FromResult(respond(messages, options));
+
+        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose() {
+        }
     }
 }
