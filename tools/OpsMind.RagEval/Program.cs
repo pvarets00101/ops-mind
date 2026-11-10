@@ -15,7 +15,7 @@ using OpsMind.Core.Rag;
 // Запуск из корня репозитория:
 //   dotnet run --project tools/OpsMind.RagEval [-- --label "описание" --sparse-weight 0.5 --no-rerank]
 // Режим --answers — оценка ответов (AnswerEval.cs), история — docs/rag-answer-eval.md:
-//   dotnet run --project tools/OpsMind.RagEval -- --answers [--provider claude-cli --model haiku] [--judge sonnet|haiku|off] [--only Q001,N001] [--limit 10]
+//   dotnet run --project tools/OpsMind.RagEval -- --answers [--provider claude-cli --model haiku] [--judge sonnet|haiku|off] [--only Q001,N001] [--limit 10] [--neighbors 0]
 // Перед запуском документы должны быть проиндексированы (src/OpsMind.Ingestion), reranker — запущен (deploy/docker-compose.yml).
 
 var label = Arg("--label") ?? "без описания";
@@ -32,6 +32,8 @@ if (Arg("--provider") == "claude-cli") {
 }
 
 var options = new RagOptions { SparseWeight = sparseWeight, RerankerUrl = "http://localhost:8081/" };
+if (int.TryParse(Arg("--neighbors"), out var neighbors))
+    options.NeighborChunks = neighbors;
 var services = new ServiceCollection()
     .AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
     .AddOpsMindLlm(llmOptions)

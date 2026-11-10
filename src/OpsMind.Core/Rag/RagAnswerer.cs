@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 
@@ -44,6 +44,7 @@ public sealed class RagAnswerer(KnowledgeBase knowledgeBase, IChatClient chat, R
         var hits = await knowledgeBase.SearchAsync(question, options.TopK, ct);
         if (hits.Count == 0 || !IsRelevant(hits))
             return new RagAnswer(NotFound, hits, Grounded: false, ModelCalled: false);
+        hits = await AddNeighborsAsync(hits, ct);
 
         List<ChatMessage> messages =
         [
@@ -54,6 +55,30 @@ public sealed class RagAnswerer(KnowledgeBase knowledgeBase, IChatClient chat, R
         var response = await chat.GetResponseAsync(messages, new ChatOptions { Temperature = 0.1f, ResponseFormat = Format }, ct);
         var (found, answer) = ParseAnswer(response.Text);
         return new RagAnswer(answer, hits, found, ModelCalled: true, response.Usage);
+    }
+
+    async Task<IReadOnlyList<SearchHit>> AddNeighborsAsync(IReadOnlyList<SearchHit> hits, CancellationToken ct) {
+        var top = hits[0];
+        if (options.NeighborChunks <= 0 || top.ChunkIndex is not { } index)
+            return hits;
+        var neighbors = await knowledgeBase.GetChunksAsync(
+            top.DocId, Math.Max(0, index - options.NeighborChunks), index + options.NeighborChunks, ct);
+        return WithNeighbors(hits, neighbors);
+    }
+
+    /// <summary>
+    /// Ставит фрагменты документа лучшего результата подряд, в порядке документа, и добавляет недостающих соседей;
+    /// остальные результаты — следом, в порядке поиска. Фрагмент, уже найденный поиском, не дублируется.
+    /// </summary>
+    public static IReadOnlyList<SearchHit> WithNeighbors(IReadOnlyList<SearchHit> hits, IReadOnlyList<SearchHit> neighbors) {
+        var top = hits[0];
+        var found = hits.Where(h => h.DocId == top.DocId && h.ChunkIndex is not null).ToDictionary(h => h.ChunkIndex!.Value);
+        var block = neighbors
+            .Select(n => found.TryGetValue(n.ChunkIndex!.Value, out var hit) ? hit : n with { Neighbor = true })
+            .ToList();
+        if (!block.Contains(top))
+            return hits; // соседи не пришли (документ переиндексирован?) — оставляем как было
+        return block.Concat(hits.Where(h => !block.Contains(h))).ToList();
     }
 
     /// <summary>Фрагменты в том виде, в каком их видит модель (и судья при оценке).</summary>

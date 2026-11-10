@@ -1,4 +1,4 @@
-namespace OpsMind.Core.Rag;
+﻿namespace OpsMind.Core.Rag;
 
 /// <summary>Фрагмент документа, который индексируется в векторной БД.</summary>
 /// <param name="DocId">Идентификатор документа из front matter (RB-010).</param>
@@ -19,8 +19,11 @@ public sealed record DocumentChunk(
 /// <param name="Score">Итоговая оценка в выбранном режиме: косинус (dense), BM25 (sparse) или RRF (hybrid).</param>
 /// <param name="DenseScore">Косинусная близость, если фрагмент найден dense-поиском.</param>
 /// <param name="RerankScore">Оценка reranker'а (0..1), если он включён.</param>
+/// <param name="ChunkIndex">Номер фрагмента в документе (<see cref="DocumentChunk.Index"/>); null — неизвестен.</param>
+/// <param name="Neighbor">Фрагмент не найден поиском, а добавлен как сосед лучшего результата.</param>
 public sealed record SearchHit(
-    string DocId, string Title, string Section, string Text, float Score, float? DenseScore, float? RerankScore = null);
+    string DocId, string Title, string Section, string Text, float Score, float? DenseScore, float? RerankScore = null,
+    int? ChunkIndex = null, bool Neighbor = false);
 
 public enum SearchMode {
     /// <summary>Только векторный (семантический) поиск.</summary>

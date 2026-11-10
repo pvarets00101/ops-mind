@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.AI;
 using Qdrant.Client;
@@ -93,6 +93,18 @@ public sealed class KnowledgeBase(
         return await reranker.RerankAsync(query, candidates, topK, ct);
     }
 
+    /// <summary>Фрагменты документа с номерами из [from, to] в порядке документа.</summary>
+    public async Task<IReadOnlyList<SearchHit>> GetChunksAsync(string docId, int from, int to, CancellationToken ct = default) {
+        var response = await qdrant.ScrollAsync(
+            options.Collection,
+            MatchKeyword("doc_id", docId) & Range("chunk_index", new Qdrant.Client.Grpc.Range { Gte = from, Lte = to }),
+            limit: (uint)(to - from + 1), payloadSelector: true, cancellationToken: ct);
+        return response.Result
+            .Select(p => ToHit(p.Payload, score: 0, denseScore: null))
+            .OrderBy(h => h.ChunkIndex)
+            .ToList();
+    }
+
     async Task<IReadOnlyList<SearchHit>> RetrieveAsync(string query, int topK, SearchMode mode, CancellationToken ct) {
         switch (mode) {
             case SearchMode.Dense:
@@ -148,13 +160,16 @@ public sealed class KnowledgeBase(
             .ToList();
     }
 
-    static SearchHit ToHit(ScoredPoint p, float? denseScore) => new(
-        p.Payload["doc_id"].StringValue,
-        p.Payload["title"].StringValue,
-        p.Payload["section"].StringValue,
-        p.Payload["text"].StringValue,
-        p.Score,
-        denseScore);
+    static SearchHit ToHit(ScoredPoint p, float? denseScore) => ToHit(p.Payload, p.Score, denseScore);
+
+    static SearchHit ToHit(IDictionary<string, Value> payload, float score, float? denseScore) => new(
+        payload["doc_id"].StringValue,
+        payload["title"].StringValue,
+        payload["section"].StringValue,
+        payload["text"].StringValue,
+        score,
+        denseScore,
+        ChunkIndex: payload.TryGetValue("chunk_index", out var index) ? (int)index.IntegerValue : null);
 
     // Детерминированный id: повторная индексация перезаписывает те же точки, а не плодит дубликаты.
     static Guid StableId(string key) => new(MD5.HashData(Encoding.UTF8.GetBytes(key)));
