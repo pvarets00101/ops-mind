@@ -159,7 +159,7 @@ docs/                           — план, бенчмарки, заметки
 - [x] Вопросы вне базы (`data/eval/rag-offtopic.jsonl`, 25 шт.) и калибровка порога: по косинусу классы перекрываются (из базы ≥ 0.50, вне базы до 0.545), `MinScore` = 0.48
 - [x] Ответ с цитатами источников (`POST /api/ask`), два уровня отказа: порог `MinScore` и инструкция модели
 - [x] Метрики поиска: hit@k, MRR (`tools/OpsMind.RagEval`)
-- [ ] Метрики ответа: faithfulness, relevance (LLM-as-judge, Microsoft.Extensions.AI.Evaluation)
+- [x] Метрики ответа: LLM-as-judge (`AnswerJudge`, Claude Sonnet): верно / подтверждено / полно; `RagEval --answers`, `docs/rag-answer-eval.md`. qwen3 70 %, Haiku 99 %, Sonnet 98 %
 - [ ] pgvector против Qdrant: скорость, удобство, фильтрация
 - [ ] **py-lab:** тот же ingestion на **LlamaIndex** и цепочка на **LangChain**, сравнение метрик с C#-версией
 
@@ -247,7 +247,7 @@ docs/                           — план, бенчмарки, заметки
 - [x] Unit-тесты разбора `stream-json` на записанных строках и сборки промпта (`tests/OpsMind.Tests/ClaudeCliTests.cs`)
 - [x] Классификатор на Claude (`docs/model-selection.md`): «все три поля» qwen3 52 % → Haiku 77 %, Sonnet 80 %; выбран Haiku (лучше в приоритете: 88 %, Macro-F1 0.906).
   Цифры — после проверки разметки `test_hard.jsonl` по RB-001 (исправлено 7 эталонов, `docs/label-review.md`; до этого Haiku = Sonnet = 72 %)
-- [ ] Перезапустить на Claude оценки RAG-ответов и агента (агент — сделано: 24 сценария на Sonnet, `docs/agent-eval.md`; RAG — осталось)
+- [x] Перезапустить на Claude оценки RAG-ответов и агента (агент — 24 сценария на Sonnet, `docs/agent-eval.md`; RAG — Haiku 99 %, Sonnet 98 % против qwen3 70 %, `docs/model-selection.md`)
 - [x] Повтор запуска процесса: Claude Code обновляет себя сам, и `claude.exe` на несколько секунд недоступен (Win32Exception 216)
 - [ ] Измерить накладные расходы CLI: время запуска процесса, лишние токены на вызов. Первые замеры: ~3 с на короткий ответ, из них ~1.3–2 с — сам API; ~650 входных токенов на минимальный вопрос
 
